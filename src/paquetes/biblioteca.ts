@@ -27,6 +27,10 @@ export interface VistaPaquete {
   icono: string | null;
 }
 
+// Forma de `paquetes.json`. Es un contrato con el proveedor de contenido nativo
+// (Kotlin), que lo lee para responderle a WhatsApp: cambiarla implica cambiar
+// también ese lado. El id de un paquete (`<tipo>-<numero>`) no puede cambiar
+// una vez agregado a WhatsApp, por eso se guarda el número desde el primero.
 interface PaqueteGuardado {
   tipo: TipoSticker;
   numero: number;
