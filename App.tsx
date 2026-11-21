@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { SafeAreaView, StyleSheet, Text } from 'react-native';
+import { StatusBar as BarraNativa, StyleSheet, Text, View } from 'react-native';
 import { abrirBiblioteca, type VistaPaquete } from './src/paquetes/biblioteca';
 import { crearAlmacenEnArchivo } from './src/paquetes/almacen-en-archivo';
 import { PantallaPaquetes } from './src/pantalla/PantallaPaquetes';
@@ -16,11 +16,12 @@ export default function App() {
   }, []);
 
   return (
-    <SafeAreaView style={styles.container}>
+    // Android dibuja de borde a borde: dejamos lugar para la barra de estado.
+    <View style={[styles.container, { paddingTop: BarraNativa.currentHeight ?? 0 }]}>
       {error && <Text style={styles.error}>No se pudieron leer los paquetes: {error}</Text>}
       {paquetes && <PantallaPaquetes paquetes={paquetes} />}
       <StatusBar style="auto" />
-    </SafeAreaView>
+    </View>
   );
 }
 
