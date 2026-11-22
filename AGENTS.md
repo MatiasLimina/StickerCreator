@@ -14,7 +14,7 @@ npx expo run:android        # development build local (requiere Android SDK)
 cd android && ./gradlew :conversor:connectedDebugAndroidTest
 ```
 
-En Windows, si la compilación de C++ falla con "Filename longer than 260 characters": activá `LongPathsEnabled` en el registro y reemplazá el `ninja.exe` de `<Android SDK>/cmake/<versión>/bin` por ninja 1.12 o superior (el 1.10 que trae el SDK no soporta rutas largas).
+Las pruebas nativas y los builds locales se hacen en un teléfono físico por USB, sin emulador: SDK en `D:\DevTools\Android`, paso a paso en `docs/agents/probar-en-telefono.md` (incluye el arreglo de rutas largas de Windows).
 
 ## Reglas
 
