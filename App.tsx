@@ -37,6 +37,7 @@ function Pantalla() {
   async function elegirDeGaleria() {
     if (!biblioteca) return;
     setConvirtiendo(true);
+    setAviso(null);
     try {
       const resultado = await crearStickerDesdeGaleria(biblioteca);
       if (resultado) setAviso(resultado);

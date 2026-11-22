@@ -10,7 +10,11 @@ npm run typecheck           # tsc --noEmit
 npx expo install <paquete>  # siempre en lugar de npm install <paquete>: resuelve versiones compatibles con el SDK
 npx expo-doctor             # diagnóstico de dependencias y config
 npx expo run:android        # development build local (requiere Android SDK)
+# tests instrumentados del conversor, con un teléfono o emulador conectado (después de `npx expo prebuild`):
+cd android && ./gradlew :conversor:connectedDebugAndroidTest
 ```
+
+En Windows, si la compilación de C++ falla con "Filename longer than 260 characters": activá `LongPathsEnabled` en el registro y reemplazá el `ninja.exe` de `<Android SDK>/cmake/<versión>/bin` por ninja 1.12 o superior (el 1.10 que trae el SDK no soporta rutas largas).
 
 ## Reglas
 

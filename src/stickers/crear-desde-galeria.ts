@@ -11,9 +11,16 @@ export async function crearStickerDesdeGaleria(biblioteca: Biblioteca): Promise<
   const elegida = await launchImageLibraryAsync({ mediaTypes: ['images'] });
   if (elegida.canceled) return null;
 
+  const [imagen] = elegida.assets;
+  // La galería ofrece GIFs como imágenes, pero un GIF es un sticker animado:
+  // convertido acá quedaría congelado en su primer cuadro.
+  if (imagen.mimeType === 'image/gif') {
+    return 'No se pudo crear el sticker: los GIF todavía no se pueden convertir';
+  }
+
   const nombre = nombreNuevo();
   const resultado = await Conversor.convertirImagen(
-    elegida.assets[0].uri,
+    imagen.uri,
     archivoDeSticker(nombre).uri,
   );
   if (resultado.tipo === 'descarte') return `No se pudo crear el sticker: ${resultado.motivo}`;
