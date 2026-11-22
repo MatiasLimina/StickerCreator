@@ -1,6 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { StatusBar as BarraNativa, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { abrirBiblioteca, type Biblioteca, type VistaPaquete } from './src/paquetes/biblioteca';
 import { crearAlmacenEnArchivo } from './src/paquetes/almacen-en-archivo';
 import { PantallaPaquetes } from './src/pantalla/PantallaPaquetes';
@@ -10,6 +11,14 @@ import { crearStickerDesdeGaleria } from './src/stickers/crear-desde-galeria';
 const mensajeDe = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 export default function App() {
+  return (
+    <SafeAreaProvider>
+      <Pantalla />
+    </SafeAreaProvider>
+  );
+}
+
+function Pantalla() {
   const [biblioteca, setBiblioteca] = useState<Biblioteca | null>(null);
   const [paquetes, setPaquetes] = useState<VistaPaquete[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -40,8 +49,9 @@ export default function App() {
   }
 
   return (
-    // Android dibuja de borde a borde: dejamos lugar para la barra de estado.
-    <View style={[styles.container, { paddingTop: BarraNativa.currentHeight ?? 0 }]}>
+    // Android dibuja de borde a borde: dejamos lugar para la barra de estado
+    // arriba y la de navegación abajo.
+    <SafeAreaView style={styles.container}>
       {error && <Text style={styles.error}>{error}</Text>}
       {paquetes && (
         <PantallaPaquetes
@@ -58,7 +68,7 @@ export default function App() {
         <Text style={styles.textoBoton}>{convirtiendo ? 'Convirtiendo…' : 'Elegir de la galería'}</Text>
       </Pressable>
       <StatusBar style="auto" />
-    </View>
+    </SafeAreaView>
   );
 }
 
