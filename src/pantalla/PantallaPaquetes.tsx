@@ -1,4 +1,4 @@
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Image, StyleSheet, Text, View } from 'react-native';
 import type { VistaPaquete } from '../paquetes/biblioteca';
 
 function estado(paquete: VistaPaquete): string {
@@ -6,7 +6,13 @@ function estado(paquete: VistaPaquete): string {
   return `Faltan ${paquete.faltan} para poder agregarlo`;
 }
 
-export function PantallaPaquetes({ paquetes }: { paquetes: VistaPaquete[] }) {
+interface Props {
+  paquetes: VistaPaquete[];
+  /** Dónde está el archivo de un sticker, para mostrarlo. */
+  uriDeSticker: (archivo: string) => string;
+}
+
+export function PantallaPaquetes({ paquetes, uriDeSticker }: Props) {
   return (
     <FlatList
       data={paquetes}
@@ -21,6 +27,13 @@ export function PantallaPaquetes({ paquetes }: { paquetes: VistaPaquete[] }) {
             </Text>
           </View>
           <Text style={styles.estado}>{estado(item)}</Text>
+          {item.stickers.length > 0 && (
+            <View style={styles.grilla}>
+              {item.stickers.map((archivo) => (
+                <Image key={archivo} source={{ uri: uriDeSticker(archivo) }} style={styles.sticker} />
+              ))}
+            </View>
+          )}
         </View>
       )}
     />
@@ -34,4 +47,6 @@ const styles = StyleSheet.create({
   nombre: { fontSize: 18, fontWeight: '600' },
   contador: { fontSize: 16, color: '#475467' },
   estado: { marginTop: 4, color: '#475467' },
+  grilla: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
+  sticker: { width: 72, height: 72 },
 });
