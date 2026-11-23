@@ -188,4 +188,18 @@ class ProveedorStickersTest {
     }
     File(contexto.filesDir, "secreto.txt").delete()
   }
+
+  @Test
+  fun noAbreArchivosEnModoEscritura() {
+    guardarIndice("""{"paquetes":[$estaticoPublicado]}""")
+    sticker("a.webp", Color.RED)
+
+    for (modo in listOf("w", "rw", "wt")) {
+      try {
+        contexto.contentResolver.openAssetFileDescriptor(uri("stickers_asset", "estatico-1", "a.webp"), modo)!!.close()
+        fail("Abrió a.webp en modo $modo")
+      } catch (esperado: SecurityException) {
+      }
+    }
+  }
 }

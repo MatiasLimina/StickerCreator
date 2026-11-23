@@ -22,8 +22,6 @@ class WhatsAppModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("WhatsApp")
 
-    Function("estaInstalado") { estaInstalado(contexto()) }
-
     AsyncFunction("estaAgregado") { id: String -> estaAgregado(contexto(), id) }
 
     AsyncFunction("agregar") { id: String, nombre: String, promise: Promise ->

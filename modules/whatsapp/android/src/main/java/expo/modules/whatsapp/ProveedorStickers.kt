@@ -79,6 +79,8 @@ class ProveedorStickers : ContentProvider() {
     }
 
   override fun openAssetFile(uri: Uri, mode: String): AssetFileDescriptor {
+    // Solo lectura: un modo con "w" saltea el permiso de lectura del manifiesto.
+    if (mode != "r") throw SecurityException("Los stickers son de solo lectura")
     if (rutas.match(uri) != ARCHIVO) throw FileNotFoundException("URI desconocida: $uri")
     val (id, nombre) = uri.pathSegments.let { it[1] to it[2] }
     val indice = indice()

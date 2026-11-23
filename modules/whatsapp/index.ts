@@ -9,9 +9,7 @@ export type ResultadoAgregar =
   | { tipo: 'error'; motivo: string };
 
 interface WhatsAppNativo {
-  /** Si WhatsApp normal está instalado (WhatsApp Business no cuenta). */
-  estaInstalado(): boolean;
-  /** Le pregunta a WhatsApp si el paquete ya está en su bandeja. */
+  /** Le pregunta a WhatsApp si el paquete ya está en su bandeja (false si no está instalado). */
   estaAgregado(id: string): Promise<boolean>;
   /** Abre la confirmación de WhatsApp para agregar el paquete. */
   agregar(id: string, nombre: string): Promise<ResultadoAgregar>;

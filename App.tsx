@@ -7,7 +7,7 @@ import { crearAlmacenEnArchivo } from './src/paquetes/almacen-en-archivo';
 import { PantallaPaquetes } from './src/pantalla/PantallaPaquetes';
 import { archivoDeSticker } from './src/stickers/carpeta';
 import { crearStickerDesdeGaleria } from './src/stickers/crear-desde-galeria';
-import { agregarAWhatsApp, consultarAgregados } from './src/whatsapp/agregar';
+import { agregarAWhatsApp, consultarAgregados, estaAgregado } from './src/whatsapp/agregar';
 
 const mensajeDe = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -79,9 +79,10 @@ function Pantalla() {
       if (resultado) setAviso(resultado.aviso);
       setPaquetes(biblioteca.paquetes());
       // WhatsApp no relee solo un paquete que ya tiene: le pedimos que lo
-      // actualice, y el usuario lo confirma con un toque.
+      // actualice, y el usuario lo confirma con un toque. Se lo preguntamos
+      // ahora y no al estado de la pantalla, que puede no estar al día.
       const paquete = resultado?.paquete;
-      if (paquete && agregados[paquete.id]) await agregar(paquete, true);
+      if (paquete?.sePuedeAgregar && (await estaAgregado(paquete))) await agregar(paquete, true);
     } catch (e) {
       setAviso(`No se pudo crear el sticker: ${mensajeDe(e)}`);
     } finally {

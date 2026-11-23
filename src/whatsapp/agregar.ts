@@ -32,6 +32,11 @@ export async function agregarAWhatsApp(
   }
 }
 
+/** Le pregunta a WhatsApp si ya tiene el paquete; si no responde, asume que no. */
+export async function estaAgregado(paquete: VistaPaquete): Promise<boolean> {
+  return WhatsApp.estaAgregado(paquete.id).catch(() => false);
+}
+
 /** Le pregunta a WhatsApp cuáles de los paquetes ya tiene agregados. */
 export async function consultarAgregados(paquetes: VistaPaquete[]): Promise<Record<string, boolean>> {
   const consultas = paquetes
