@@ -10,8 +10,8 @@ npm run typecheck           # tsc --noEmit
 npx expo install <paquete>  # siempre en lugar de npm install <paquete>: resuelve versiones compatibles con el SDK
 npx expo-doctor             # diagnóstico de dependencias y config
 npx expo run:android        # development build local (requiere Android SDK)
-# tests instrumentados del conversor, con un teléfono o emulador conectado (después de `npx expo prebuild`):
-cd android && ./gradlew :conversor:connectedDebugAndroidTest
+# tests instrumentados (conversor y contrato con WhatsApp), con un teléfono o emulador conectado (después de `npx expo prebuild`):
+cd android && ./gradlew :conversor:connectedDebugAndroidTest :whatsapp:connectedDebugAndroidTest
 ```
 
 Las pruebas nativas y los builds locales se hacen en un teléfono físico por USB, sin emulador: SDK en `D:\DevTools\Android`, paso a paso en `docs/agents/probar-en-telefono.md` (incluye el arreglo de rutas largas de Windows).

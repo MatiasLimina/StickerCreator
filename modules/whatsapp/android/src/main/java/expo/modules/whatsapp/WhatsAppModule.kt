@@ -41,7 +41,13 @@ class WhatsAppModule : Module() {
         putExtra("sticker_pack_authority", ProveedorStickers.autoridad(contexto))
         putExtra("sticker_pack_name", nombre)
       }
-      appContext.throwingActivity.startActivityForResult(intent, CODIGO_AGREGAR)
+      try {
+        appContext.throwingActivity.startActivityForResult(intent, CODIGO_AGREGAR)
+      } catch (e: Exception) {
+        // Sin esto la llamada quedaría esperando una respuesta que no llega.
+        pendiente = null
+        throw e
+      }
     }.runOnQueue(Queues.MAIN)
 
     OnActivityResult { _, resultado ->

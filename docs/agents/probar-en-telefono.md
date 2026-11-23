@@ -20,7 +20,7 @@ $adb = "D:\DevTools\Android\platform-tools\adb.exe"
 
 npx expo prebuild --platform android --clean --no-install   # solo si cambió app.json, un plugin o una dependencia nativa
 cd android
-.\gradlew :conversor:connectedDebugAndroidTest              # tests instrumentados en el teléfono
+.\gradlew :conversor:connectedDebugAndroidTest :whatsapp:connectedDebugAndroidTest   # tests instrumentados en el teléfono
 .\gradlew :app:assembleDebug                                # APK de desarrollo
 & $adb install -r app\build\outputs\apk\debug\app-debug.apk
 cd ..
@@ -35,7 +35,7 @@ npx expo start --dev-client --port 8081
 
 Después abrí StickerCreator en el teléfono. No uses `CI=1`: en ese modo Metro no recarga cambios y sirve el JS viejo.
 
-- Resultados de los tests: `modules\conversor\android\build\outputs\androidTest-results\connected\debug\*.xml`.
+- Resultados de los tests: `modules\<módulo>\android\build\outputs\androidTest-results\connected\debug\*.xml` (`conversor` o `whatsapp`).
 - El primer build tarda entre 10 y 25 minutos porque compila el C++ de React Native. Los siguientes tardan unos pocos minutos.
 - Una dependencia nativa nueva (por ejemplo, de `npx expo install`) obliga a recompilar e instalar el APK. Un cambio solo de JS se ve con Metro, sin recompilar.
 

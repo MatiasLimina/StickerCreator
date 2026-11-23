@@ -99,8 +99,10 @@ class ProveedorStickers : ContentProvider() {
   /**
    * El ícono de bandeja (PNG de 96×96) sale del primer sticker publicado. Se
    * genera la primera vez que WhatsApp lo pide para cada versión y queda en
-   * caché; las versiones viejas se borran.
+   * caché; las versiones viejas se borran. WhatsApp puede pedir archivos desde
+   * varios hilos a la vez: se genera de a uno.
    */
+  @Synchronized
   private fun bandeja(paquete: PaquetePublicado, indice: IndicePaquetes): File {
     val carpeta = File(context!!.cacheDir, "bandeja").apply { mkdirs() }
     val destino = File(carpeta, "${paquete.id}-${paquete.version}.png")
@@ -111,8 +113,8 @@ class ProveedorStickers : ContentProvider() {
     val icono = Bitmap.createScaledBitmap(sticker, LADO_BANDEJA, LADO_BANDEJA, true)
     val temporal = File(carpeta, "${destino.name}.tmp")
     temporal.outputStream().use { icono.compress(Bitmap.CompressFormat.PNG, 100, it) }
-    carpeta.listFiles { f -> f.name.startsWith("${paquete.id}-") && f != temporal }?.forEach { it.delete() }
     temporal.renameTo(destino)
+    carpeta.listFiles { f -> f.name.startsWith("${paquete.id}-") && f != destino }?.forEach { it.delete() }
     return destino
   }
 

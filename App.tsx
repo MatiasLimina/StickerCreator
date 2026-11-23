@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Pressable, StyleSheet, Text } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { abrirBiblioteca, type Biblioteca, type VistaPaquete } from './src/paquetes/biblioteca';
@@ -38,10 +38,16 @@ function Pantalla() {
 
   // El estado "agregado" vive en WhatsApp: se lo preguntamos al abrir y cada
   // vez que la app vuelve al frente (por ejemplo, después de confirmar ahí).
+  // Las consultas pueden solaparse (al volver al frente y al cambiar los
+  // paquetes): solo vale la respuesta de la última.
+  const ultimaConsulta = useRef(0);
   const refrescarAgregados = useCallback(() => {
     if (!paquetes) return;
+    const esta = ++ultimaConsulta.current;
     consultarAgregados(paquetes)
-      .then(setAgregados)
+      .then((nuevos) => {
+        if (esta === ultimaConsulta.current) setAgregados((antes) => ({ ...antes, ...nuevos }));
+      })
       .catch(() => {}); // si WhatsApp no responde, queda el último estado conocido
   }, [paquetes]);
 
