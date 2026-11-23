@@ -20,6 +20,7 @@ Las pruebas nativas y los builds locales se hacen en un teléfono físico por US
 
 - Expo cambia mucho entre SDKs: antes de usar una API de Expo/React Native, leé la doc versionada (`https://docs.expo.dev/versions/v58.0.0/`) o `https://docs.expo.dev/llms.txt`, no la memoria.
 - `android/` se genera (Continuous Native Generation) y está ignorado: la config nativa va en `app.json` y config plugins, nunca a mano.
+- Todo proceso que lances (ffmpeg, Metro, Gradle, scripts) tiene un final acotado: duración del lado de la entrada en las fuentes generadas (`testsrc2=...:duration=2`, no `-t` de salida) y `timeout` en el comando. Si supera su timeout, cortalo e investigá: es un bug, no algo para mandar a segundo plano. Motivo: el 2026-11-23 un ffmpeg con `palettegen` sobre una fuente infinita llenó la RAM y colgó la PC. Al lanzar algo en segundo plano, el hook de `.claude/settings.json` te pide armar el chequeo cada 3 minutos (`scripts/chequeo-procesos.sh`).
 - El índice de paquetes vive en `paquetes.json` dentro de la carpeta privada de la app; el proveedor de contenido nativo lo lee, así que su formato es un contrato entre TS y Kotlin.
 
 ## Agent skills
