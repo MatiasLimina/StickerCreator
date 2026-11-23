@@ -1,12 +1,13 @@
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { AppState, Pressable, StyleSheet, Text } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { abrirBiblioteca, type Biblioteca, type VistaPaquete } from './src/paquetes/biblioteca';
 import { crearAlmacenEnArchivo } from './src/paquetes/almacen-en-archivo';
 import { PantallaPaquetes } from './src/pantalla/PantallaPaquetes';
 import { archivoDeSticker } from './src/stickers/carpeta';
 import { crearStickerDesdeGaleria } from './src/stickers/crear-desde-galeria';
+import { agregarAWhatsApp, consultarAgregados } from './src/whatsapp/agregar';
 
 const mensajeDe = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -24,6 +25,7 @@ function Pantalla() {
   const [error, setError] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [convirtiendo, setConvirtiendo] = useState(false);
+  const [agregados, setAgregados] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     abrirBiblioteca(crearAlmacenEnArchivo())
@@ -33,6 +35,34 @@ function Pantalla() {
       })
       .catch((e: unknown) => setError(`No se pudieron leer los paquetes: ${mensajeDe(e)}`));
   }, []);
+
+  // El estado "agregado" vive en WhatsApp: se lo preguntamos al abrir y cada
+  // vez que la app vuelve al frente (por ejemplo, después de confirmar ahí).
+  const refrescarAgregados = useCallback(() => {
+    if (!paquetes) return;
+    consultarAgregados(paquetes)
+      .then(setAgregados)
+      .catch(() => {}); // si WhatsApp no responde, queda el último estado conocido
+  }, [paquetes]);
+
+  useEffect(() => {
+    refrescarAgregados();
+    const suscripcion = AppState.addEventListener('change', (estado) => {
+      if (estado === 'active') refrescarAgregados();
+    });
+    return () => suscripcion.remove();
+  }, [refrescarAgregados]);
+
+  async function agregar(paquete: VistaPaquete) {
+    setAviso(null);
+    try {
+      const { agregado, aviso: resultado } = await agregarAWhatsApp(paquete);
+      if (agregado) setAgregados((antes) => ({ ...antes, [paquete.id]: true }));
+      setAviso(resultado);
+    } catch (e) {
+      setAviso(`No se pudo abrir WhatsApp: ${mensajeDe(e)}`);
+    }
+  }
 
   async function elegirDeGaleria() {
     if (!biblioteca) return;
@@ -57,7 +87,9 @@ function Pantalla() {
       {paquetes && (
         <PantallaPaquetes
           paquetes={paquetes}
+          agregados={agregados}
           uriDeSticker={(nombre) => archivoDeSticker(nombre).uri}
+          onAgregar={agregar}
         />
       )}
       {aviso && <Text style={styles.aviso}>{aviso}</Text>}
