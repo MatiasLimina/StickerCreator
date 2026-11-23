@@ -79,18 +79,12 @@ class ConversorEstatico(private val contexto: Context) {
     }
     // Android 7-8: BitmapFactory no aplica la rotación EXIF de las fotos.
     val limites = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-    abrir(origen) { BitmapFactory.decodeStream(it, null, limites) }
+    contexto.abrir(origen) { BitmapFactory.decodeStream(it, null, limites) }
     if (limites.outWidth <= 0 || limites.outHeight <= 0) return null
     var muestreo = 1
     while (maxOf(limites.outWidth, limites.outHeight) / (muestreo * 2) >= LADO_STICKER) muestreo *= 2
     val opciones = BitmapFactory.Options().apply { inSampleSize = muestreo }
-    return abrir(origen) { BitmapFactory.decodeStream(it, null, opciones) }
-  }
-
-  private fun <T> abrir(origen: Uri, leer: (java.io.InputStream) -> T): T {
-    val entrada = contexto.contentResolver.openInputStream(origen)
-      ?: throw IOException("No se pudo abrir $origen")
-    return entrada.use(leer)
+    return contexto.abrir(origen) { BitmapFactory.decodeStream(it, null, opciones) }
   }
 
   @Suppress("DEPRECATION")

@@ -1,5 +1,6 @@
 package expo.modules.conversor
 
+import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -46,9 +47,9 @@ class ConversorAnimadoTest {
   }
 
   /** Lo que importa de un WebP animado, leído del contenedor RIFF a mano. */
-  private data class WebpAnimado(val ancho: Int, val alto: Int, val duraciones: List<Int>)
+  private data class CabeceraWebp(val ancho: Int, val alto: Int, val duraciones: List<Int>)
 
-  private fun leerWebp(archivo: File): WebpAnimado {
+  private fun leerWebp(archivo: File): CabeceraWebp {
     val b = ByteBuffer.wrap(archivo.readBytes()).order(ByteOrder.LITTLE_ENDIAN)
     fun fourcc(pos: Int) = String(ByteArray(4) { b.get(pos + it) }, Charsets.US_ASCII)
     fun u24(pos: Int) = (b.get(pos).toInt() and 0xFF) or
@@ -71,10 +72,10 @@ class ConversorAnimadoTest {
       pos += 8 + tamano + (tamano and 1)
     }
     assertTrue("Falta ANIM: chunks $chunks", "ANIM" in chunks)
-    return WebpAnimado(ancho, alto, duraciones)
+    return CabeceraWebp(ancho, alto, duraciones)
   }
 
-  private fun stickerAnimado(resultado: Resultado): WebpAnimado {
+  private fun stickerAnimado(resultado: Resultado): CabeceraWebp {
     assertTrue("Esperaba un sticker y vino $resultado", resultado is Resultado.Listo)
     val archivo = (resultado as Resultado.Listo).archivo
     assertTrue("El sticker pesa ${archivo.length()} bytes", archivo.length() <= 500 * 1024)
@@ -83,6 +84,9 @@ class ConversorAnimadoTest {
     assertEquals(512, webp.alto)
     assertTrue("Tiene ${webp.duraciones.size} cuadros", webp.duraciones.size > 1)
     assertTrue("Cuadros de menos de 8 ms: ${webp.duraciones}", webp.duraciones.all { it >= 8 })
+    // El ícono de bandeja sale del primer cuadro, leído con BitmapFactory.
+    val primerCuadro = BitmapFactory.decodeFile(archivo.path)
+    assertEquals(512, primerCuadro?.width)
     return webp
   }
 
@@ -99,8 +103,9 @@ class ConversorAnimadoTest {
     val webp = stickerAnimado(conversor.convertir(muestra("video-12s.mp4"), File(carpeta, "12s.webp")))
 
     val duracion = webp.duraciones.sum()
-    // Sin audio por construcción: un WebP no puede llevarlo.
-    assertTrue("Dura $duracion ms", duracion in 1000..5000)
+    // Entra con el tramo entero de 5 s (75 cuadros de 66 ms). Sin audio por
+    // construcción: un WebP no puede llevarlo.
+    assertEquals(4950, duracion)
   }
 
   @Test

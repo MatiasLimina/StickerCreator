@@ -17,7 +17,6 @@ import kotlin.math.roundToInt
 
 private const val PESO_MAXIMO = 500 * 1024
 private const val TRAMO_MAXIMO_MS = 5000L
-private const val MINIMO_DURACION_CUADRO_MS = 8
 
 /** Los cuadros se leen una sola vez a este ritmo; cada intento elige entre ellos. */
 private const val FPS_LECTURA = 15
@@ -29,6 +28,7 @@ private data class Paso(val fps: Int, val calidad: Int)
 
 // De mejor a peor: baja la calidad y los cuadros por segundo de a poco. El
 // último es el piso: más abajo el sticker se ve mal, así que conviene acortar.
+// Con 15 fps como máximo, cada cuadro dura 66 ms o más (WhatsApp pide 8 ms).
 private val PASOS = listOf(
   Paso(15, 75),
   Paso(15, 50),
@@ -92,7 +92,6 @@ class ConversorAnimado(private val contexto: Context) {
     val cantidad = (duracionMs * paso.fps / 1000).toInt()
     if (cantidad < 2) return null
     val duracionCuadroMs = 1000 / paso.fps
-    check(duracionCuadroMs >= MINIMO_DURACION_CUADRO_MS)
     val elegidos = Array(cantidad) { k ->
       cuadros[minOf(cuadros.lastIndex, (k * FPS_LECTURA.toDouble() / paso.fps).roundToInt())]
     }
@@ -110,7 +109,7 @@ class ConversorAnimado(private val contexto: Context) {
 
   private fun esGif(origen: Uri): Boolean {
     val cabecera = try {
-      abrir(origen) { entrada -> ByteArray(6).also { entrada.read(it) } }
+      contexto.abrir(origen) { entrada -> ByteArray(6).also { entrada.read(it) } }
     } catch (e: IOException) {
       throw Descartado(NO_SOPORTADO)
     }
@@ -124,20 +123,24 @@ class ConversorAnimado(private val contexto: Context) {
    */
   @Suppress("DEPRECATION")
   private fun leerGif(origen: Uri): Tramo {
-    val bytes = abrir(origen) { it.readBytes() }
+    val bytes = contexto.abrir(origen) { it.readBytes() }
     val gif = Movie.decodeByteArray(bytes, 0, bytes.size) ?: throw Descartado(NO_SOPORTADO)
+    if (gif.width() <= 0 || gif.height() <= 0) throw Descartado(NO_SOPORTADO)
     if (gif.duration() <= 0) throw Descartado("El GIF no tiene animación")
     val duracionMs = minOf(TRAMO_MAXIMO_MS, gif.duration().toLong())
     val lienzo = Bitmap.createBitmap(gif.width(), gif.height(), Bitmap.Config.ARGB_8888)
     val canvas = Canvas(lienzo)
-    val cuadros = instantesMs(duracionMs).map { instante ->
-      lienzo.eraseColor(Color.TRANSPARENT)
-      gif.setTime(instante.toInt())
-      gif.draw(canvas, 0f, 0f)
-      encajar(lienzo, LADO_STICKER)
+    try {
+      val cuadros = leerCuadros(instantesMs(duracionMs)) { instante ->
+        lienzo.eraseColor(Color.TRANSPARENT)
+        gif.setTime(instante.toInt())
+        gif.draw(canvas, 0f, 0f)
+        encajar(lienzo, LADO_STICKER)
+      }
+      return Tramo(cuadros, duracionMs)
+    } finally {
+      lienzo.recycle()
     }
-    lienzo.recycle()
-    return Tramo(cuadros, duracionMs)
   }
 
   private fun leerVideo(origen: Uri): Tramo {
@@ -152,8 +155,9 @@ class ConversorAnimado(private val contexto: Context) {
       if (lector.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_VIDEO) != "yes" || duracion == null) {
         throw Descartado(NO_SOPORTADO)
       }
-      val duracionMs = minOf(TRAMO_MAXIMO_MS, duracion)
-      val cuadros = instantesMs(duracionMs).mapNotNull { instante ->
+      // Se lee hasta el primer cuadro que falte (la duración declarada puede
+      // pasarse del último cuadro): saltear uno aceleraría el sticker.
+      val cuadros = leerCuadros(instantesMs(minOf(TRAMO_MAXIMO_MS, duracion))) { instante ->
         cuadroDeVideo(lector, instante * 1000)?.let { cuadro ->
           encajar(cuadro, LADO_STICKER).also { cuadro.recycle() }
         }
@@ -162,7 +166,7 @@ class ConversorAnimado(private val contexto: Context) {
         cuadros.forEach(Bitmap::recycle)
         throw Descartado("El video es demasiado corto")
       }
-      return Tramo(cuadros, duracionMs)
+      return Tramo(cuadros, cuadros.size * 1000L / FPS_LECTURA)
     } finally {
       lector.release()
     }
@@ -176,12 +180,21 @@ class ConversorAnimado(private val contexto: Context) {
       lector.getFrameAtTime(instanteUs, MediaMetadataRetriever.OPTION_CLOSEST)
     }
 
+  /**
+   * Lee un cuadro por instante hasta el primero que dé null. Si algo falla a
+   * mitad de camino, libera los cuadros ya leídos antes de propagar el error.
+   */
+  private fun leerCuadros(instantesMs: List<Long>, leer: (Long) -> Bitmap?): List<Bitmap> {
+    val cuadros = mutableListOf<Bitmap>()
+    try {
+      for (instante in instantesMs) cuadros += leer(instante) ?: break
+      return cuadros
+    } catch (e: Throwable) {
+      cuadros.forEach(Bitmap::recycle)
+      throw e
+    }
+  }
+
   private fun instantesMs(duracionMs: Long): List<Long> =
     (0 until ceil(duracionMs * FPS_LECTURA / 1000.0).toInt()).map { it * 1000L / FPS_LECTURA }
-
-  private fun <T> abrir(origen: Uri, leer: (java.io.InputStream) -> T): T {
-    val entrada = contexto.contentResolver.openInputStream(origen)
-      ?: throw IOException("No se pudo abrir $origen")
-    return entrada.use(leer)
-  }
 }

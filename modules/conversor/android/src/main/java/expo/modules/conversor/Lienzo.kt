@@ -1,10 +1,14 @@
 package expo.modules.conversor
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
+import android.net.Uri
 import java.io.File
+import java.io.IOException
+import java.io.InputStream
 
 /** Lado de un sticker de WhatsApp, estático o animado. */
 internal const val LADO_STICKER = 512
@@ -30,4 +34,10 @@ internal fun guardar(bytes: ByteArray, destino: File): Resultado {
   destino.parentFile?.mkdirs()
   destino.writeBytes(bytes)
   return Resultado.Listo(destino)
+}
+
+/** Abre el archivo de origen (URI `file://` o `content://`) y lo lee con `leer`. */
+internal fun <T> Context.abrir(origen: Uri, leer: (InputStream) -> T): T {
+  val entrada = contentResolver.openInputStream(origen) ?: throw IOException("No se pudo abrir $origen")
+  return entrada.use(leer)
 }
