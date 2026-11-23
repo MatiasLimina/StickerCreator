@@ -23,6 +23,7 @@ import java.nio.ByteOrder
  * - video-12s.mp4: 1280×720, 12 s, con audio.
  * - video-pesado.mp4: ruido de 72×72 ampliado, 6 s: no entra en 500 KB con 5 s.
  * - video-imposible.mp4: ruido de 512×512: no entra ni con 1 s.
+ * - video-quieto.mp4: 2 s de un solo color: no tiene movimiento.
  */
 @RunWith(AndroidJUnit4::class)
 class ConversorAnimadoTest {
@@ -124,6 +125,19 @@ class ConversorAnimadoTest {
 
     assertTrue("Esperaba un descarte y vino $resultado", resultado is Resultado.Descarte)
     assertTrue((resultado as Resultado.Descarte).motivo.contains("500 KB"))
+    assertFalse(destino.exists())
+  }
+
+  @Test
+  fun videoSinMovimientoSeDescartaConMotivoYNoDejaArchivo() {
+    // libwebp junta los cuadros iguales en uno y saca un WebP estático, que
+    // WhatsApp rechazaría dentro de un paquete animado.
+    val destino = File(carpeta, "quieto.webp")
+
+    val resultado = conversor.convertir(muestra("video-quieto.mp4"), destino)
+
+    assertTrue("Esperaba un descarte y vino $resultado", resultado is Resultado.Descarte)
+    assertTrue((resultado as Resultado.Descarte).motivo.contains("movimiento"))
     assertFalse(destino.exists())
   }
 

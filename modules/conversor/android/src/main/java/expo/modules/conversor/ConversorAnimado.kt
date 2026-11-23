@@ -63,6 +63,9 @@ class ConversorAnimado(private val contexto: Context) {
     try {
       for (duracionMs in duraciones(tramo.duracionMs)) {
         val bytes = mejorQueEntra(tramo.cuadros, duracionMs) ?: continue
+        // libwebp junta los cuadros iguales: sin movimiento sale un WebP
+        // estático, y WhatsApp rechaza el paquete animado que lo contenga.
+        if (!esAnimado(bytes)) return Resultado.Descarte("El archivo no tiene movimiento")
         return guardar(bytes, destino)
       }
       return Resultado.Descarte("El sticker animado no entra en 500 KB ni acortando el tramo a 1 s")
@@ -70,6 +73,10 @@ class ConversorAnimado(private val contexto: Context) {
       tramo.cuadros.forEach(Bitmap::recycle)
     }
   }
+
+  /** Un WebP es animado si tiene la cabecera extendida (VP8X) con la marca de animación. */
+  private fun esAnimado(webp: ByteArray): Boolean =
+    webp.size > 20 && String(webp, 12, 4, Charsets.US_ASCII) == "VP8X" && (webp[20].toInt() and 0x02) != 0
 
   /** El tramo entero primero y después los acortes que sean más cortos que él. */
   private fun duraciones(tramoMs: Long): List<Long> = listOf(tramoMs) + ACORTES_MS.filter { it < tramoMs }

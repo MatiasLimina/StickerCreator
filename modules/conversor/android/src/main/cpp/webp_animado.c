@@ -41,6 +41,7 @@ Java_expo_modules_conversor_WebpAnimado_codificar(JNIEnv* env, jclass clase, job
     return NULL;
   }
   opciones.anim_params.loop_count = 0;
+  opciones.anim_params.bgcolor = 0;  // fondo transparente, como los bordes del encajado
   config.quality = (float)calidad;
   config.thread_level = 1;
   cuadro.use_argb = 1;
