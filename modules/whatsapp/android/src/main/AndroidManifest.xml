@@ -1,0 +1,22 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+  <!-- Android 11+ esconde las otras apps: sin esto no podemos saber si
+       WhatsApp está instalado ni preguntarle si ya agregó un paquete. -->
+  <queries>
+    <package android:name="com.whatsapp" />
+  </queries>
+
+  <!-- El proveedor que lee WhatsApp. com.whatsapp.sticker.READ es un permiso
+       de firma de WhatsApp: ninguna otra app puede leer los stickers. También
+       va como permiso de escritura: Android chequea solo ese al abrir un
+       archivo en modo "w", y sin él cualquier app podría leerlo así. -->
+  <application>
+    <provider
+      android:name="expo.modules.whatsapp.ProveedorStickers"
+      android:authorities="${applicationId}.stickers"
+      android:enabled="true"
+      android:exported="true"
+      android:readPermission="com.whatsapp.sticker.READ"
+      android:writePermission="com.whatsapp.sticker.READ" />
+  </application>
+</manifest>

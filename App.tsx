@@ -1,12 +1,13 @@
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState, Pressable, StyleSheet, Text } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { abrirBiblioteca, type Biblioteca, type VistaPaquete } from './src/paquetes/biblioteca';
 import { crearAlmacenEnArchivo } from './src/paquetes/almacen-en-archivo';
 import { PantallaPaquetes } from './src/pantalla/PantallaPaquetes';
 import { archivoDeSticker } from './src/stickers/carpeta';
 import { crearStickerDesdeGaleria } from './src/stickers/crear-desde-galeria';
+import { agregarAWhatsApp, consultarAgregados, estaAgregado } from './src/whatsapp/agregar';
 
 const mensajeDe = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -24,6 +25,7 @@ function Pantalla() {
   const [error, setError] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [convirtiendo, setConvirtiendo] = useState(false);
+  const [agregados, setAgregados] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     abrirBiblioteca(crearAlmacenEnArchivo())
@@ -34,14 +36,53 @@ function Pantalla() {
       .catch((e: unknown) => setError(`No se pudieron leer los paquetes: ${mensajeDe(e)}`));
   }, []);
 
+  // El estado "agregado" vive en WhatsApp: se lo preguntamos al abrir y cada
+  // vez que la app vuelve al frente (por ejemplo, después de confirmar ahí).
+  // Las consultas pueden solaparse (al volver al frente y al cambiar los
+  // paquetes): solo vale la respuesta de la última.
+  const ultimaConsulta = useRef(0);
+  const refrescarAgregados = useCallback(() => {
+    if (!paquetes) return;
+    const esta = ++ultimaConsulta.current;
+    consultarAgregados(paquetes)
+      .then((nuevos) => {
+        if (esta === ultimaConsulta.current) setAgregados((antes) => ({ ...antes, ...nuevos }));
+      })
+      .catch(() => {}); // si WhatsApp no responde, queda el último estado conocido
+  }, [paquetes]);
+
+  useEffect(() => {
+    refrescarAgregados();
+    const suscripcion = AppState.addEventListener('change', (estado) => {
+      if (estado === 'active') refrescarAgregados();
+    });
+    return () => suscripcion.remove();
+  }, [refrescarAgregados]);
+
+  async function agregar(paquete: VistaPaquete, yaAgregado = false) {
+    setAviso(null);
+    try {
+      const { agregado, aviso: resultado } = await agregarAWhatsApp(paquete, yaAgregado);
+      if (agregado) setAgregados((antes) => ({ ...antes, [paquete.id]: true }));
+      setAviso(resultado);
+    } catch (e) {
+      setAviso(`No se pudo abrir WhatsApp: ${mensajeDe(e)}`);
+    }
+  }
+
   async function elegirDeGaleria() {
     if (!biblioteca) return;
     setConvirtiendo(true);
     setAviso(null);
     try {
       const resultado = await crearStickerDesdeGaleria(biblioteca);
-      if (resultado) setAviso(resultado);
+      if (resultado) setAviso(resultado.aviso);
       setPaquetes(biblioteca.paquetes());
+      // WhatsApp no relee solo un paquete que ya tiene: le pedimos que lo
+      // actualice, y el usuario lo confirma con un toque. Se lo preguntamos
+      // ahora y no al estado de la pantalla, que puede no estar al día.
+      const paquete = resultado?.paquete;
+      if (paquete?.sePuedeAgregar && (await estaAgregado(paquete))) await agregar(paquete, true);
     } catch (e) {
       setAviso(`No se pudo crear el sticker: ${mensajeDe(e)}`);
     } finally {
@@ -57,7 +98,9 @@ function Pantalla() {
       {paquetes && (
         <PantallaPaquetes
           paquetes={paquetes}
+          agregados={agregados}
           uriDeSticker={(nombre) => archivoDeSticker(nombre).uri}
+          onAgregar={agregar}
         />
       )}
       {aviso && <Text style={styles.aviso}>{aviso}</Text>}
