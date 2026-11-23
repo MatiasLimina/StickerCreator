@@ -19,13 +19,18 @@ class ConversorModule : Module() {
       conversor().convertir(Uri.parse(origen), archivo(destino)).aMapa()
     }
 
+    AsyncFunction("convertirAnimado") { origen: String, destino: String ->
+      ConversorAnimado(contexto()).convertir(Uri.parse(origen), archivo(destino)).aMapa()
+    }
+
     AsyncFunction("generarIconoBandeja") { sticker: String, destino: String ->
       conversor().iconoDeBandeja(archivo(sticker), archivo(destino)).aMapa()
     }
   }
 
-  private fun conversor() =
-    ConversorEstatico(appContext.reactContext ?: throw Exceptions.ReactContextLost())
+  private fun contexto() = appContext.reactContext ?: throw Exceptions.ReactContextLost()
+
+  private fun conversor() = ConversorEstatico(contexto())
 
   /** Acepta una ruta común o una URI `file://` (como las de expo-file-system). */
   private fun archivo(ruta: String): File =

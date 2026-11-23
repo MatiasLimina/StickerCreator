@@ -8,8 +8,21 @@ version = '1.0.0'
 
 android {
   namespace "expo.modules.conversor"
+  // El mismo NDK que React Native, que ya está instalado (ver docs/agents/probar-en-telefono.md).
+  ndkVersion rootProject.ext.ndkVersion
   defaultConfig {
     testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    externalNativeBuild {
+      cmake {
+        // Páginas de 16 KB, que Google Play exige para las bibliotecas nativas.
+        arguments "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON"
+      }
+    }
+  }
+  externalNativeBuild {
+    cmake {
+      path "CMakeLists.txt"
+    }
   }
 }
 

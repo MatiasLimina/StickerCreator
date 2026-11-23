@@ -3,10 +3,7 @@ package expo.modules.conversor
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Canvas
 import android.graphics.ImageDecoder
-import android.graphics.Paint
-import android.graphics.RectF
 import android.net.Uri
 import android.os.Build
 import java.io.ByteArrayOutputStream
@@ -19,7 +16,6 @@ sealed class Resultado {
   data class Descarte(val motivo: String) : Resultado()
 }
 
-private const val LADO_STICKER = 512
 private const val PESO_MAXIMO_STICKER = 100 * 1024
 private const val LADO_ICONO = 96
 private const val PESO_MAXIMO_ICONO = 50 * 1024
@@ -83,35 +79,12 @@ class ConversorEstatico(private val contexto: Context) {
     }
     // Android 7-8: BitmapFactory no aplica la rotación EXIF de las fotos.
     val limites = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-    abrir(origen) { BitmapFactory.decodeStream(it, null, limites) }
+    contexto.abrir(origen) { BitmapFactory.decodeStream(it, null, limites) }
     if (limites.outWidth <= 0 || limites.outHeight <= 0) return null
     var muestreo = 1
     while (maxOf(limites.outWidth, limites.outHeight) / (muestreo * 2) >= LADO_STICKER) muestreo *= 2
     val opciones = BitmapFactory.Options().apply { inSampleSize = muestreo }
-    return abrir(origen) { BitmapFactory.decodeStream(it, null, opciones) }
-  }
-
-  private fun <T> abrir(origen: Uri, leer: (java.io.InputStream) -> T): T {
-    val entrada = contexto.contentResolver.openInputStream(origen)
-      ?: throw IOException("No se pudo abrir $origen")
-    return entrada.use(leer)
-  }
-
-  /** Dibuja la imagen entera, centrada, en un cuadrado transparente de `lado`. */
-  private fun encajar(imagen: Bitmap, lado: Int): Bitmap {
-    val escala = lado.toFloat() / maxOf(imagen.width, imagen.height)
-    val ancho = imagen.width * escala
-    val alto = imagen.height * escala
-    val izquierda = (lado - ancho) / 2
-    val arriba = (lado - alto) / 2
-    val cuadrado = Bitmap.createBitmap(lado, lado, Bitmap.Config.ARGB_8888)
-    Canvas(cuadrado).drawBitmap(
-      imagen,
-      null,
-      RectF(izquierda, arriba, izquierda + ancho, arriba + alto),
-      Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG),
-    )
-    return cuadrado
+    return contexto.abrir(origen) { BitmapFactory.decodeStream(it, null, opciones) }
   }
 
   @Suppress("DEPRECATION")
@@ -121,10 +94,4 @@ class ConversorEstatico(private val contexto: Context) {
 
   private fun comprimir(imagen: Bitmap, formato: Bitmap.CompressFormat, calidad: Int): ByteArray =
     ByteArrayOutputStream().also { imagen.compress(formato, calidad, it) }.toByteArray()
-
-  private fun guardar(bytes: ByteArray, destino: File): Resultado {
-    destino.parentFile?.mkdirs()
-    destino.writeBytes(bytes)
-    return Resultado.Listo(destino)
-  }
 }

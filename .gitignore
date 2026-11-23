@@ -42,3 +42,6 @@ yarn-error.*
 
 # salida de compilación de los módulos locales
 modules/*/android/build/
+
+# salida de CMake/NDK del conversor
+modules/*/android/.cxx/
