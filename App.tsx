@@ -59,10 +59,10 @@ function Pantalla() {
     return () => suscripcion.remove();
   }, [refrescarAgregados]);
 
-  async function agregar(paquete: VistaPaquete) {
+  async function agregar(paquete: VistaPaquete, yaAgregado = false) {
     setAviso(null);
     try {
-      const { agregado, aviso: resultado } = await agregarAWhatsApp(paquete);
+      const { agregado, aviso: resultado } = await agregarAWhatsApp(paquete, yaAgregado);
       if (agregado) setAgregados((antes) => ({ ...antes, [paquete.id]: true }));
       setAviso(resultado);
     } catch (e) {
@@ -76,8 +76,12 @@ function Pantalla() {
     setAviso(null);
     try {
       const resultado = await crearStickerDesdeGaleria(biblioteca);
-      if (resultado) setAviso(resultado);
+      if (resultado) setAviso(resultado.aviso);
       setPaquetes(biblioteca.paquetes());
+      // WhatsApp no relee solo un paquete que ya tiene: le pedimos que lo
+      // actualice, y el usuario lo confirma con un toque.
+      const paquete = resultado?.paquete;
+      if (paquete && agregados[paquete.id]) await agregar(paquete, true);
     } catch (e) {
       setAviso(`No se pudo crear el sticker: ${mensajeDe(e)}`);
     } finally {
