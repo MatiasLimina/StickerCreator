@@ -1,0 +1,78 @@
+import { launchImageLibraryAsync } from 'expo-image-picker';
+import Conversor from '../../modules/conversor';
+import { abrirBiblioteca } from '../paquetes/biblioteca';
+import { crearAlmacenEnMemoria } from '../paquetes/almacen-en-memoria';
+import { crearStickerDesdeGaleria } from './crear-desde-galeria';
+
+jest.mock('expo-image-picker', () => ({ launchImageLibraryAsync: jest.fn() }));
+jest.mock('expo-file-system', () => ({
+  Paths: { document: 'file:///docs' },
+  Directory: jest.fn(),
+  File: jest.fn().mockImplementation((_carpeta: unknown, nombre: string) => ({
+    uri: `file:///docs/stickers/${nombre}`,
+  })),
+}));
+jest.mock('../../modules/conversor', () => ({
+  __esModule: true,
+  default: { convertirImagen: jest.fn(), convertirAnimado: jest.fn() },
+}));
+
+const elegir = jest.mocked(launchImageLibraryAsync);
+const conversor = jest.mocked(Conversor);
+
+function eligio(asset: { uri: string; type: 'image' | 'video'; mimeType: string }) {
+  elegir.mockResolvedValue({ canceled: false, assets: [asset] } as never);
+}
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  const listo = async (_origen: string, destino: string) => ({ tipo: 'listo' as const, archivo: destino });
+  conversor.convertirImagen.mockImplementation(listo);
+  conversor.convertirAnimado.mockImplementation(listo);
+});
+
+describe('crear un sticker desde la galería', () => {
+  it('un GIF se convierte en sticker animado y queda en "Mis stickers animados"', async () => {
+    const biblioteca = await abrirBiblioteca(crearAlmacenEnMemoria());
+    eligio({ uri: 'content://gif', type: 'image', mimeType: 'image/gif' });
+
+    const resultado = await crearStickerDesdeGaleria(biblioteca);
+
+    expect(conversor.convertirAnimado).toHaveBeenCalledWith('content://gif', expect.stringMatching(/\.webp$/));
+    expect(resultado?.aviso).toBe('Agregado a Mis stickers animados');
+    expect(biblioteca.paquetes().find((p) => p.tipo === 'animado')?.cantidad).toBe(1);
+    expect(biblioteca.paquetes().find((p) => p.tipo === 'estatico')?.cantidad).toBe(0);
+  });
+
+  it('un video se convierte en sticker animado', async () => {
+    const biblioteca = await abrirBiblioteca(crearAlmacenEnMemoria());
+    eligio({ uri: 'content://video', type: 'video', mimeType: 'video/mp4' });
+
+    const resultado = await crearStickerDesdeGaleria(biblioteca);
+
+    expect(conversor.convertirAnimado).toHaveBeenCalledWith('content://video', expect.any(String));
+    expect(resultado?.paquete?.nombre).toBe('Mis stickers animados');
+  });
+
+  it('una foto sigue yendo a "Mis stickers"', async () => {
+    const biblioteca = await abrirBiblioteca(crearAlmacenEnMemoria());
+    eligio({ uri: 'content://foto', type: 'image', mimeType: 'image/jpeg' });
+
+    const resultado = await crearStickerDesdeGaleria(biblioteca);
+
+    expect(conversor.convertirImagen).toHaveBeenCalled();
+    expect(conversor.convertirAnimado).not.toHaveBeenCalled();
+    expect(resultado?.paquete?.nombre).toBe('Mis stickers');
+  });
+
+  it('un video que no entra en el peso se descarta con el motivo y no se guarda', async () => {
+    const biblioteca = await abrirBiblioteca(crearAlmacenEnMemoria());
+    eligio({ uri: 'content://pesado', type: 'video', mimeType: 'video/mp4' });
+    conversor.convertirAnimado.mockResolvedValue({ tipo: 'descarte', motivo: 'no entra en 500 KB' });
+
+    const resultado = await crearStickerDesdeGaleria(biblioteca);
+
+    expect(resultado).toEqual({ aviso: 'No se pudo crear el sticker: no entra en 500 KB' });
+    expect(biblioteca.paquetes().every((p) => p.cantidad === 0)).toBe(true);
+  });
+});

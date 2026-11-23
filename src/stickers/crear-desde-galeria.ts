@@ -1,33 +1,34 @@
-import { launchImageLibraryAsync } from 'expo-image-picker';
+import { launchImageLibraryAsync, type ImagePickerAsset } from 'expo-image-picker';
 import Conversor from '../../modules/conversor';
-import type { Biblioteca, VistaPaquete } from '../paquetes/biblioteca';
+import type { Biblioteca, TipoSticker, VistaPaquete } from '../paquetes/biblioteca';
 import { archivoDeSticker, nombreNuevo } from './carpeta';
 
+/** Un GIF o un video es un sticker animado; cualquier otra imagen, uno estático. */
+function tipoDeSticker(elegido: ImagePickerAsset): TipoSticker {
+  return elegido.type === 'video' || elegido.mimeType === 'image/gif' ? 'animado' : 'estatico';
+}
+
 /**
- * Abre la galería, convierte la imagen elegida y la guarda en la biblioteca.
- * Devuelve el aviso de una línea para el usuario y el paquete donde quedó el
- * sticker (si se creó), o null si canceló.
+ * Abre la galería, convierte la imagen, GIF o video elegido y lo guarda en la
+ * biblioteca. Devuelve el aviso de una línea para el usuario y el paquete
+ * donde quedó el sticker (si se creó), o null si canceló.
  */
 export async function crearStickerDesdeGaleria(
   biblioteca: Biblioteca,
 ): Promise<{ aviso: string; paquete?: VistaPaquete } | null> {
-  const elegida = await launchImageLibraryAsync({ mediaTypes: ['images'] });
+  const elegida = await launchImageLibraryAsync({ mediaTypes: ['images', 'videos'] });
   if (elegida.canceled) return null;
 
-  const [imagen] = elegida.assets;
-  // La galería ofrece GIFs como imágenes, pero un GIF es un sticker animado:
-  // convertido acá quedaría congelado en su primer cuadro.
-  if (imagen.mimeType === 'image/gif') {
-    return { aviso: 'No se pudo crear el sticker: los GIF todavía no se pueden convertir' };
-  }
-
+  const [origen] = elegida.assets;
+  const tipo = tipoDeSticker(origen);
   const nombre = nombreNuevo();
-  const resultado = await Conversor.convertirImagen(
-    imagen.uri,
-    archivoDeSticker(nombre).uri,
-  );
+  const destino = archivoDeSticker(nombre).uri;
+  const resultado =
+    tipo === 'animado'
+      ? await Conversor.convertirAnimado(origen.uri, destino)
+      : await Conversor.convertirImagen(origen.uri, destino);
   if (resultado.tipo === 'descarte') return { aviso: `No se pudo crear el sticker: ${resultado.motivo}` };
 
-  const paquete = await biblioteca.agregarSticker({ tipo: 'estatico', archivo: nombre });
+  const paquete = await biblioteca.agregarSticker({ tipo, archivo: nombre });
   return { aviso: `Agregado a ${paquete.nombre}`, paquete };
 }

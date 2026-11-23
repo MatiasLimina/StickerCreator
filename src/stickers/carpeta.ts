@@ -11,7 +11,7 @@ export function archivoDeSticker(nombre: string): File {
   return new File(carpeta, nombre);
 }
 
-/** Un nombre nuevo y único para un sticker estático. */
+/** Un nombre nuevo y único para un sticker (estático o animado: los dos son WebP). */
 export function nombreNuevo(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webp`;
 }
