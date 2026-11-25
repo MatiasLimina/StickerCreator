@@ -40,7 +40,7 @@ export function PantallaPaquetes({ paquetes, agregados, uriDeSticker, onAgregar,
             {item.stickers.length > 0 && (
               <View style={styles.grilla}>
                 {item.stickers.map((archivo) => (
-                  <Pressable key={archivo} onLongPress={() => onBorrar(archivo)} accessibilityHint="Mantené apretado para borrarlo">
+                  <Pressable key={archivo} onLongPress={() => onBorrar(archivo)} accessibilityLabel="Sticker" accessibilityHint="Mantené apretado para borrarlo">
                     <Image source={{ uri: uriDeSticker(archivo) }} style={styles.sticker} />
                   </Pressable>
                 ))}

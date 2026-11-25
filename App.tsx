@@ -81,11 +81,11 @@ function Pantalla() {
   // borrados) corre de a uno: si llega algo mientras se convierte, espera su
   // turno. Así dos escrituras del índice nunca se pisan.
   const cola = useRef(Promise.resolve());
-  function enCola(tarea: () => Promise<void>) {
+  function encolarCambio(tarea: () => Promise<void>) {
     cola.current = cola.current.then(tarea).catch(() => {});
   }
   function encolar(tanda: () => Promise<ResultadoTanda | null>, desdeCompartir = false) {
-    enCola(() => correrTanda(tanda, desdeCompartir));
+    encolarCambio(() => correrTanda(tanda, desdeCompartir));
   }
 
   /**
@@ -100,7 +100,7 @@ function Pantalla() {
   }
 
   function borrar(archivo: string) {
-    enCola(async () => {
+    encolarCambio(async () => {
       if (!biblioteca) return;
       setAviso(null);
       try {
