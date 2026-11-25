@@ -12,6 +12,15 @@ import { convertirTanda, type ResultadoTanda } from './src/stickers/tanda';
 import { agregarAWhatsApp, consultarAgregados, estaAgregado } from './src/whatsapp/agregar';
 
 const mensajeDe = (e: unknown) => (e instanceof Error ? e.message : String(e));
+const uriDeSticker = (nombre: string) => archivoDeSticker(nombre).uri;
+const SIN_SELECCION: ReadonlySet<string> = new Set();
+
+/** La selección con `archivo` marcado si no lo estaba, o desmarcado si lo estaba. */
+function alternado(seleccion: ReadonlySet<string>, archivo: string): ReadonlySet<string> {
+  const nueva = new Set(seleccion);
+  if (!nueva.delete(archivo)) nueva.add(archivo);
+  return nueva;
+}
 
 export default function App() {
   return (
@@ -29,8 +38,8 @@ function Pantalla() {
   const [convirtiendo, setConvirtiendo] = useState(false);
   const [agregados, setAgregados] = useState<Record<string, boolean>>({});
   // Stickers marcados para borrar, como en una galería: con alguno marcado, la pantalla está en modo selección.
-  const [seleccion, setSeleccion] = useState<string[]>([]);
-  const seleccionando = seleccion.length > 0;
+  const [seleccion, setSeleccion] = useState<ReadonlySet<string>>(SIN_SELECCION);
+  const seleccionando = seleccion.size > 0;
 
   useEffect(() => {
     abrirBiblioteca(crearAlmacenEnArchivo(), eliminarArchivoDeSticker)
@@ -102,21 +111,29 @@ function Pantalla() {
     return actualizacion.agregado ? null : actualizacion.aviso;
   }
 
-  const alternar = (archivo: string) =>
-    setSeleccion((antes) => (antes.includes(archivo) ? antes.filter((a) => a !== archivo) : [...antes, archivo]));
+  // Estables (no dependen de la selección actual) para que la grilla redibuje
+  // solo la celda que cambia.
+  const mantenerSticker = useCallback(
+    (archivo: string) => setSeleccion((antes) => (antes.size > 0 ? alternado(antes, archivo) : new Set([archivo]))),
+    [],
+  );
+  const tocarSticker = useCallback(
+    (archivo: string) => setSeleccion((antes) => (antes.size > 0 ? alternado(antes, archivo) : antes)),
+    [],
+  );
 
   // Atrás sale del modo selección en vez de cerrar la app.
   useEffect(() => {
     if (!seleccionando) return;
     const atras = BackHandler.addEventListener('hardwareBackPress', () => {
-      setSeleccion([]);
+      setSeleccion(SIN_SELECCION);
       return true;
     });
     return () => atras.remove();
   }, [seleccionando]);
 
   function confirmarBorrado() {
-    const archivos = seleccion;
+    const archivos = [...seleccion];
     const cuantos = archivos.length === 1 ? 'el sticker' : `${archivos.length} stickers`;
     Alert.alert(`¿Borrar ${cuantos}?`, 'No se puede deshacer.', [
       { text: 'Cancelar', style: 'cancel' },
@@ -125,7 +142,7 @@ function Pantalla() {
   }
 
   function borrar(archivos: string[]) {
-    setSeleccion([]);
+    setSeleccion(SIN_SELECCION);
     encolarCambio(async () => {
       if (!biblioteca) return;
       setAviso(null);
@@ -220,21 +237,21 @@ function Pantalla() {
         <PantallaPaquetes
           paquetes={paquetes}
           agregados={agregados}
-          uriDeSticker={(nombre) => archivoDeSticker(nombre).uri}
+          uriDeSticker={uriDeSticker}
           onAgregar={agregar}
           seleccionados={seleccion}
-          onMantener={(archivo) => (seleccionando ? alternar(archivo) : setSeleccion([archivo]))}
-          onTocar={(archivo) => seleccionando && alternar(archivo)}
+          onMantener={mantenerSticker}
+          onTocar={tocarSticker}
         />
       )}
       {aviso && <Text style={styles.aviso}>{aviso}</Text>}
       {seleccionando ? (
         <View style={styles.barraSeleccion}>
-          <Pressable style={[styles.boton, styles.botonCancelar]} onPress={() => setSeleccion([])}>
+          <Pressable style={[styles.boton, styles.botonCancelar]} onPress={() => setSeleccion(SIN_SELECCION)}>
             <Text style={styles.textoCancelar}>Cancelar</Text>
           </Pressable>
           <Pressable style={[styles.boton, styles.botonBorrar]} onPress={confirmarBorrado}>
-            <Text style={styles.textoBoton}>Borrar ({seleccion.length})</Text>
+            <Text style={styles.textoBoton}>Borrar ({seleccion.size})</Text>
           </Pressable>
         </View>
       ) : (

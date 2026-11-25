@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { VistaPaquete } from '../paquetes/biblioteca';
 
@@ -13,16 +14,45 @@ interface Props {
   paquetes: VistaPaquete[];
   /** Qué paquetes ya tiene WhatsApp, por id (según le preguntamos). */
   agregados: Record<string, boolean>;
-  /** Dónde está el archivo de un sticker, para mostrarlo. */
+  /** Dónde está el archivo de un sticker, para mostrarlo. Tiene que ser estable entre renders. */
   uriDeSticker: (archivo: string) => string;
   onAgregar: (paquete: VistaPaquete) => void;
   /** Stickers marcados para borrar; si hay alguno, la pantalla está en modo selección. */
-  seleccionados: string[];
-  /** Una pulsación larga entra al modo selección con ese sticker. */
+  seleccionados: ReadonlySet<string>;
+  /** Una pulsación larga entra al modo selección con ese sticker (o lo alterna si ya está en ese modo). */
   onMantener: (archivo: string) => void;
   /** En modo selección, un toque marca o desmarca el sticker. */
   onTocar: (archivo: string) => void;
 }
+
+type Acciones = Pick<Props, 'uriDeSticker' | 'onMantener' | 'onTocar'>;
+
+/**
+ * Un sticker de la grilla. Memorizado: al marcar uno, solo se redibuja esa
+ * celda y no todas las imágenes de la pantalla (por eso los callbacks que
+ * recibe tienen que ser estables).
+ */
+const Celda = memo(function Celda({
+  archivo,
+  marcado,
+  uriDeSticker,
+  onMantener,
+  onTocar,
+}: Acciones & { archivo: string; marcado: boolean }) {
+  return (
+    <Pressable
+      onLongPress={() => onMantener(archivo)}
+      onPress={() => onTocar(archivo)}
+      style={[styles.celda, marcado && styles.celdaMarcada]}
+      accessibilityLabel="Sticker"
+      accessibilityState={{ selected: marcado }}
+      accessibilityHint="Mantené apretado para seleccionarlo"
+    >
+      <Image source={{ uri: uriDeSticker(archivo) }} style={[styles.sticker, marcado && styles.stickerMarcado]} />
+      {marcado && <Text style={styles.tilde}>✓</Text>}
+    </Pressable>
+  );
+});
 
 export function PantallaPaquetes({ paquetes, agregados, uriDeSticker, onAgregar, seleccionados, onMantener, onTocar }: Props) {
   return (
@@ -43,23 +73,16 @@ export function PantallaPaquetes({ paquetes, agregados, uriDeSticker, onAgregar,
             <Text style={[styles.estado, agregado && styles.estadoAgregado]}>{estado(item, agregado)}</Text>
             {item.stickers.length > 0 && (
               <View style={styles.grilla}>
-                {item.stickers.map((archivo) => {
-                  const marcado = seleccionados.includes(archivo);
-                  return (
-                    <Pressable
-                      key={archivo}
-                      onLongPress={() => onMantener(archivo)}
-                      onPress={() => onTocar(archivo)}
-                      style={[styles.celda, marcado && styles.celdaMarcada]}
-                      accessibilityLabel="Sticker"
-                      accessibilityState={{ selected: marcado }}
-                      accessibilityHint="Mantené apretado para seleccionarlo"
-                    >
-                      <Image source={{ uri: uriDeSticker(archivo) }} style={[styles.sticker, marcado && styles.stickerMarcado]} />
-                      {marcado && <Text style={styles.tilde}>✓</Text>}
-                    </Pressable>
-                  );
-                })}
+                {item.stickers.map((archivo) => (
+                  <Celda
+                    key={archivo}
+                    archivo={archivo}
+                    marcado={seleccionados.has(archivo)}
+                    uriDeSticker={uriDeSticker}
+                    onMantener={onMantener}
+                    onTocar={onTocar}
+                  />
+                ))}
               </View>
             )}
             {/* Ya agregado, los stickers nuevos llegan solos: no hace falta el botón. */}
