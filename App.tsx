@@ -101,7 +101,8 @@ function Pantalla() {
 
   function borrar(archivo: string) {
     encolarCambio(async () => {
-      if (!biblioteca) return;
+      // Dos pulsaciones largas mientras corre una tanda encolan dos borrados: el segundo no tiene nada que hacer.
+      if (!biblioteca || !biblioteca.paquetes().some((p) => p.stickers.includes(archivo))) return;
       setAviso(null);
       try {
         const paquete = await biblioteca.borrarSticker(archivo);
