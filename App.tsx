@@ -5,7 +5,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { abrirBiblioteca, type Biblioteca, type VistaPaquete } from './src/paquetes/biblioteca';
 import { crearAlmacenEnArchivo } from './src/paquetes/almacen-en-archivo';
 import { PantallaPaquetes } from './src/pantalla/PantallaPaquetes';
-import { archivoDeSticker } from './src/stickers/carpeta';
+import { archivoDeSticker, eliminarArchivoDeSticker } from './src/stickers/carpeta';
 import Compartir from './modules/compartir';
 import { crearStickerDesdeGaleria } from './src/stickers/crear-desde-galeria';
 import { convertirTanda, type ResultadoTanda } from './src/stickers/tanda';
@@ -30,7 +30,7 @@ function Pantalla() {
   const [agregados, setAgregados] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    abrirBiblioteca(crearAlmacenEnArchivo())
+    abrirBiblioteca(crearAlmacenEnArchivo(), eliminarArchivoDeSticker)
       .then((abierta) => {
         setBiblioteca(abierta);
         setPaquetes(abierta.paquetes());
@@ -77,11 +77,42 @@ function Pantalla() {
     setAviso((await pedirAWhatsApp(paquete, false)).aviso);
   }
 
-  // Las tandas (de la galería o de Compartir) corren de a una: si llega otra
-  // mientras se convierte, espera su turno.
+  // Todo lo que cambia la biblioteca (tandas de la galería o de Compartir y
+  // borrados) corre de a uno: si llega algo mientras se convierte, espera su
+  // turno. Así dos escrituras del índice nunca se pisan.
   const cola = useRef(Promise.resolve());
+  function enCola(tarea: () => Promise<void>) {
+    cola.current = cola.current.then(tarea).catch(() => {});
+  }
   function encolar(tanda: () => Promise<ResultadoTanda | null>, desdeCompartir = false) {
-    cola.current = cola.current.then(() => correrTanda(tanda, desdeCompartir)).catch(() => {});
+    enCola(() => correrTanda(tanda, desdeCompartir));
+  }
+
+  /**
+   * Pide a WhatsApp que actualice un paquete que ya tiene (ADR 0002). Con
+   * menos de 3 no hay contenido nuevo publicado: no se pide nada. Devuelve el
+   * aviso si la actualización no se hizo.
+   */
+  async function actualizarEnWhatsApp(paquete: VistaPaquete): Promise<string | null> {
+    if (!paquete.sePuedeAgregar || !(await estaAgregado(paquete))) return null;
+    const actualizacion = await pedirAWhatsApp(paquete, true);
+    return actualizacion.agregado ? null : actualizacion.aviso;
+  }
+
+  function borrar(archivo: string) {
+    enCola(async () => {
+      if (!biblioteca) return;
+      setAviso(null);
+      try {
+        const paquete = await biblioteca.borrarSticker(archivo);
+        setPaquetes(biblioteca.paquetes());
+        setAviso(`Sticker borrado de ${paquete.nombre}`);
+        const falta = await actualizarEnWhatsApp(paquete);
+        if (falta) setAviso(falta);
+      } catch (e) {
+        setAviso(`No se pudo borrar el sticker: ${mensajeDe(e)}`);
+      }
+    });
   }
 
   async function correrTanda(tanda: () => Promise<ResultadoTanda | null>, desdeCompartir: boolean) {
@@ -101,9 +132,8 @@ function Pantalla() {
         // pantalla, que puede no estar al día. Si la actualización no se hizo,
         // ese aviso reemplaza al resumen: dice qué falta hacer.
         for (const paquete of resultado.paquetes) {
-          if (!paquete.sePuedeAgregar || !(await estaAgregado(paquete))) continue;
-          const actualizacion = await pedirAWhatsApp(paquete, true);
-          if (!actualizacion.agregado && actualizacion.aviso) resumen = actualizacion.aviso;
+          const falta = await actualizarEnWhatsApp(paquete);
+          if (falta) resumen = falta;
         }
         setAviso(resumen);
       }
@@ -160,6 +190,7 @@ function Pantalla() {
           agregados={agregados}
           uriDeSticker={(nombre) => archivoDeSticker(nombre).uri}
           onAgregar={agregar}
+          onBorrar={borrar}
         />
       )}
       {aviso && <Text style={styles.aviso}>{aviso}</Text>}

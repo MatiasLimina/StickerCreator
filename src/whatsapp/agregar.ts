@@ -23,7 +23,7 @@ export async function agregarAWhatsApp(
     case 'cancelado':
       return {
         agregado: false,
-        aviso: yaAgregado ? `WhatsApp no se actualizó: el sticker nuevo aparece cuando actualices ${paquete.nombre}` : null,
+        aviso: yaAgregado ? `WhatsApp no se actualizó: los cambios aparecen cuando actualices ${paquete.nombre}` : null,
       };
     case 'no-instalado':
       return { agregado: false, aviso: AVISO_SIN_WHATSAPP };
@@ -37,10 +37,13 @@ export async function estaAgregado(paquete: VistaPaquete): Promise<boolean> {
   return WhatsApp.estaAgregado(paquete.id).catch(() => false);
 }
 
-/** Le pregunta a WhatsApp cuáles de los paquetes ya tiene agregados. */
+/**
+ * Le pregunta a WhatsApp cuáles de los paquetes ya tiene agregados. Incluye
+ * los que quedaron con menos de 3: WhatsApp conserva su última versión válida.
+ */
 export async function consultarAgregados(paquetes: VistaPaquete[]): Promise<Record<string, boolean>> {
   const consultas = paquetes
-    .filter((p) => p.sePuedeAgregar)
+    .filter((p) => p.version > 0)
     .map(async (p) => [p.id, await WhatsApp.estaAgregado(p.id)] as const);
   return Object.fromEntries(await Promise.all(consultas));
 }

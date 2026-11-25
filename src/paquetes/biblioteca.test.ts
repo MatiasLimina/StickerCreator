@@ -229,3 +229,94 @@ describe('paquetes que se llenan', () => {
     });
   });
 });
+
+describe('borrar stickers', () => {
+  async function conStickers(almacen: ReturnType<typeof crearAlmacenEnMemoria>, archivos: string[]) {
+    const biblioteca = await abrirBiblioteca(almacen);
+    for (const archivo of archivos) await biblioteca.agregarSticker({ tipo: 'estatico', archivo });
+    return biblioteca;
+  }
+
+  it('borrar un sticker lo saca del paquete, baja el contador y sube la versión', async () => {
+    const biblioteca = await conStickers(crearAlmacenEnMemoria(), ['a.webp', 'b.webp', 'c.webp', 'd.webp']);
+    const antes = biblioteca.paquetes()[0];
+
+    const paquete = await biblioteca.borrarSticker('b.webp');
+
+    expect(paquete.id).toBe('estatico-1');
+    expect(paquete.stickers).toEqual(['a.webp', 'c.webp', 'd.webp']);
+    expect(paquete.cantidad).toBe(3);
+    expect(paquete.version).toBeGreaterThan(antes.version);
+    expect(biblioteca.paquetes()[0]).toEqual(paquete);
+  });
+
+  it('borrar el primer sticker pasa el ícono al siguiente, también en lo publicado', async () => {
+    const almacen = crearAlmacenEnMemoria();
+    const biblioteca = await conStickers(almacen, ['a.webp', 'b.webp', 'c.webp', 'd.webp']);
+
+    const paquete = await biblioteca.borrarSticker('a.webp');
+
+    expect(paquete.icono).toBe('b.webp');
+    const publicado = await publicadoEnElIndice(almacen, 'estatico-1');
+    expect(publicado.stickers).toEqual(['b.webp', 'c.webp', 'd.webp']);
+    expect(publicado.version).toBe(paquete.version);
+  });
+
+  it('con menos de 3 queda publicada la última versión válida, y vuelve a publicarse al llegar a 3', async () => {
+    const almacen = crearAlmacenEnMemoria();
+    const biblioteca = await conStickers(almacen, ['a.webp', 'b.webp', 'c.webp']);
+    const valida = await publicadoEnElIndice(almacen, 'estatico-1');
+
+    const conDos = await biblioteca.borrarSticker('a.webp');
+
+    expect(conDos.cantidad).toBe(2);
+    expect(conDos.sePuedeAgregar).toBe(false);
+    expect(await publicadoEnElIndice(almacen, 'estatico-1')).toEqual(valida);
+
+    const conTres = await biblioteca.agregarSticker({ tipo: 'estatico', archivo: 'd.webp' });
+
+    const nueva = await publicadoEnElIndice(almacen, 'estatico-1');
+    expect(nueva.stickers).toEqual(['b.webp', 'c.webp', 'd.webp']);
+    expect(nueva.version).toBe(conTres.version);
+    expect(nueva.version).toBeGreaterThan(valida.version);
+  });
+
+  it('borrar un sticker que no está en ningún paquete falla y no cambia nada', async () => {
+    const almacen = crearAlmacenEnMemoria();
+    const biblioteca = await conStickers(almacen, ['a.webp']);
+    const antes = await almacen.leer();
+
+    await expect(biblioteca.borrarSticker('otro.webp')).rejects.toThrow('otro.webp');
+    expect(await almacen.leer()).toBe(antes);
+  });
+
+  describe('archivos que ya nadie usa', () => {
+    async function conPapelera(archivos: string[]) {
+      const descartados: string[] = [];
+      const almacen = crearAlmacenEnMemoria();
+      const biblioteca = await abrirBiblioteca(almacen, async (archivo) => {
+        descartados.push(archivo);
+      });
+      for (const archivo of archivos) await biblioteca.agregarSticker({ tipo: 'estatico', archivo });
+      return { biblioteca, descartados };
+    }
+
+    it('el archivo de un sticker borrado se descarta si WhatsApp no lo tiene publicado', async () => {
+      const { biblioteca, descartados } = await conPapelera(['a.webp', 'b.webp', 'c.webp', 'd.webp']);
+
+      await biblioteca.borrarSticker('b.webp');
+
+      expect(descartados).toEqual(['b.webp']);
+    });
+
+    it('con menos de 3 el archivo borrado se conserva hasta que la versión publicada lo deja de nombrar', async () => {
+      const { biblioteca, descartados } = await conPapelera(['a.webp', 'b.webp', 'c.webp']);
+
+      await biblioteca.borrarSticker('a.webp');
+      expect(descartados).toEqual([]);
+
+      await biblioteca.agregarSticker({ tipo: 'estatico', archivo: 'd.webp' });
+      expect(descartados).toEqual(['a.webp']);
+    });
+  });
+});

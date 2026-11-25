@@ -11,6 +11,12 @@ export function archivoDeSticker(nombre: string): File {
   return new File(carpeta, nombre);
 }
 
+/** Elimina del disco el archivo de un sticker, si todavía está. */
+export async function eliminarArchivoDeSticker(nombre: string): Promise<void> {
+  const archivo = archivoDeSticker(nombre);
+  if (archivo.exists) archivo.delete();
+}
+
 /** Un nombre nuevo y único para un sticker (estático o animado: los dos son WebP). */
 export function nombreNuevo(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webp`;

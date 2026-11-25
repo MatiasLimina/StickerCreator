@@ -69,6 +69,8 @@ export interface Biblioteca {
   paquetes(): VistaPaquete[];
   /** Guarda el sticker en el paquete que le corresponde y devuelve ese paquete. */
   agregarSticker(sticker: StickerNuevo): Promise<VistaPaquete>;
+  /** Saca el sticker de su paquete y devuelve ese paquete. */
+  borrarSticker(archivo: string): Promise<VistaPaquete>;
 }
 
 function indiceInicial(): Indice {
@@ -148,21 +150,58 @@ function paqueteAbierto(indice: Indice, tipo: TipoSticker): PaqueteGuardado {
   return siguiente;
 }
 
-export async function abrirBiblioteca(almacen: Almacen): Promise<Biblioteca> {
+/** Los archivos que nombra el índice: los stickers de cada paquete y los que WhatsApp tiene publicados. */
+function archivosEnUso(indice: Indice): Set<string> {
+  return new Set(indice.paquetes.flatMap((p) => [...p.stickers, ...(p.publicado?.stickers ?? [])]));
+}
+
+/**
+ * Abre la biblioteca sobre su almacén. `descartar` elimina del disco el
+ * archivo de un sticker que el índice dejó de nombrar: uno borrado que
+ * WhatsApp no tiene publicado, o uno que solo seguía vivo en una versión
+ * publicada vieja.
+ */
+export async function abrirBiblioteca(
+  almacen: Almacen,
+  descartar: (archivo: string) => Promise<void> = async () => {},
+): Promise<Biblioteca> {
   const guardado = await almacen.leer();
   // Si el índice está corrupto, JSON.parse lanza: preferimos fallar a arrancar
   // vacío y pisar los stickers del usuario en la próxima escritura.
   const indice: Indice = guardado === null ? indiceInicial() : JSON.parse(guardado);
   if (completarIndiceViejo(indice)) await almacen.escribir(JSON.stringify(indice));
 
+  /**
+   * Guarda el índice y recién después descarta los archivos que dejó de
+   * nombrar: el proveedor nunca ve un índice que apunta a un archivo borrado.
+   * Si descartar falla, el archivo queda huérfano, pero el cambio ya está hecho.
+   */
+  async function guardar(enUsoAntes: Set<string>) {
+    await almacen.escribir(JSON.stringify(indice));
+    const enUso = archivosEnUso(indice);
+    for (const archivo of enUsoAntes) {
+      if (!enUso.has(archivo)) await descartar(archivo).catch(() => {});
+    }
+  }
+
   return {
     paquetes: () => indice.paquetes.map(vista),
     async agregarSticker({ tipo, archivo }) {
+      const enUso = archivosEnUso(indice);
       const destino = paqueteAbierto(indice, tipo);
       destino.stickers.push(archivo);
       registrarCambio(destino);
-      await almacen.escribir(JSON.stringify(indice));
+      await guardar(enUso);
       return vista(destino);
+    },
+    async borrarSticker(archivo) {
+      const paquete = indice.paquetes.find((p) => p.stickers.includes(archivo));
+      if (!paquete) throw new Error(`El sticker ${archivo} no está en ningún paquete`);
+      const enUso = archivosEnUso(indice);
+      paquete.stickers.splice(paquete.stickers.indexOf(archivo), 1);
+      registrarCambio(paquete);
+      await guardar(enUso);
+      return vista(paquete);
     },
   };
 }

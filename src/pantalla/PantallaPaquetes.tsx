@@ -2,6 +2,8 @@ import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native
 import type { VistaPaquete } from '../paquetes/biblioteca';
 
 function estado(paquete: VistaPaquete, agregado: boolean): string {
+  // WhatsApp conserva la última versión válida hasta que vuelva a haber 3.
+  if (agregado && !paquete.sePuedeAgregar) return `En WhatsApp sin cambios: faltan ${paquete.faltan} para actualizarlo`;
   if (agregado) return 'Agregado a WhatsApp';
   if (paquete.sePuedeAgregar) return 'Listo para agregar a WhatsApp';
   return `Faltan ${paquete.faltan} para poder agregarlo`;
@@ -14,9 +16,11 @@ interface Props {
   /** Dónde está el archivo de un sticker, para mostrarlo. */
   uriDeSticker: (archivo: string) => string;
   onAgregar: (paquete: VistaPaquete) => void;
+  /** Una pulsación larga sobre un sticker lo borra. */
+  onBorrar: (archivo: string) => void;
 }
 
-export function PantallaPaquetes({ paquetes, agregados, uriDeSticker, onAgregar }: Props) {
+export function PantallaPaquetes({ paquetes, agregados, uriDeSticker, onAgregar, onBorrar }: Props) {
   return (
     <FlatList
       data={paquetes}
@@ -36,7 +40,9 @@ export function PantallaPaquetes({ paquetes, agregados, uriDeSticker, onAgregar 
             {item.stickers.length > 0 && (
               <View style={styles.grilla}>
                 {item.stickers.map((archivo) => (
-                  <Image key={archivo} source={{ uri: uriDeSticker(archivo) }} style={styles.sticker} />
+                  <Pressable key={archivo} onLongPress={() => onBorrar(archivo)} accessibilityHint="Mantené apretado para borrarlo">
+                    <Image source={{ uri: uriDeSticker(archivo) }} style={styles.sticker} />
+                  </Pressable>
                 ))}
               </View>
             )}
