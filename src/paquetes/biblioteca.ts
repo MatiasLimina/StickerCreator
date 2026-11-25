@@ -80,11 +80,16 @@ function indiceInicial(): Indice {
   };
 }
 
+/** "Mis stickers", "Mis stickers 2", "Mis stickers 3"…: el primero va sin número. */
+function nombreDe({ tipo, numero }: PaqueteGuardado): string {
+  return numero === 1 ? NOMBRE_BASE[tipo] : `${NOMBRE_BASE[tipo]} ${numero}`;
+}
+
 function vista(paquete: PaqueteGuardado): VistaPaquete {
   const cantidad = paquete.stickers.length;
   return {
     id: `${paquete.tipo}-${paquete.numero}`,
-    nombre: NOMBRE_BASE[paquete.tipo],
+    nombre: nombreDe(paquete),
     autor: AUTOR,
     tipo: paquete.tipo,
     stickers: [...paquete.stickers],
@@ -128,6 +133,21 @@ function completarIndiceViejo(indice: Indice): boolean {
   return cambio;
 }
 
+/**
+ * El paquete abierto de un tipo es el de número más alto. Si está lleno, crea
+ * el siguiente y lo ubica después del último de su tipo, para que la pantalla
+ * los muestre agrupados. El lleno no se toca: su id ya puede estar en WhatsApp.
+ */
+function paqueteAbierto(indice: Indice, tipo: TipoSticker): PaqueteGuardado {
+  const delTipo = indice.paquetes.filter((p) => p.tipo === tipo);
+  const ultimo = delTipo.reduce((a, b) => (b.numero > a.numero ? b : a));
+  if (ultimo.stickers.length < CAPACIDAD) return ultimo;
+  const nuevo: PaqueteGuardado = { tipo, numero: ultimo.numero + 1, stickers: [], version: 0, publicado: null };
+  const despuesDelUltimo = indice.paquetes.lastIndexOf(delTipo[delTipo.length - 1]) + 1;
+  indice.paquetes.splice(despuesDelUltimo, 0, nuevo);
+  return nuevo;
+}
+
 export async function abrirBiblioteca(almacen: Almacen): Promise<Biblioteca> {
   const guardado = await almacen.leer();
   // Si el índice está corrupto, JSON.parse lanza: preferimos fallar a arrancar
@@ -138,7 +158,7 @@ export async function abrirBiblioteca(almacen: Almacen): Promise<Biblioteca> {
   return {
     paquetes: () => indice.paquetes.map(vista),
     async agregarSticker({ tipo, archivo }) {
-      const destino = indice.paquetes.find((p) => p.tipo === tipo)!;
+      const destino = paqueteAbierto(indice, tipo);
       destino.stickers.push(archivo);
       registrarCambio(destino);
       await almacen.escribir(JSON.stringify(indice));

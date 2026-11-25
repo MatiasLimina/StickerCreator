@@ -158,3 +158,76 @@ describe('lo que la biblioteca publica para WhatsApp', () => {
     expect(await publicadoEnElIndice(almacen, 'animado-1')).toBeNull();
   });
 });
+
+describe('paquetes que se llenan', () => {
+  async function agregarVarios(
+    biblioteca: Awaited<ReturnType<typeof abrirBiblioteca>>,
+    tipo: 'estatico' | 'animado',
+    cantidad: number,
+    prefijo: string = tipo,
+  ) {
+    let ultimo;
+    for (let i = 1; i <= cantidad; i++) {
+      ultimo = await biblioteca.agregarSticker({ tipo, archivo: `${prefijo}-${i}.webp` });
+    }
+    return ultimo!;
+  }
+
+  it('el sticker 31 crea "Mis stickers 2" y el paquete lleno no cambia', async () => {
+    const biblioteca = await abrirBiblioteca(crearAlmacenEnMemoria());
+    await agregarVarios(biblioteca, 'estatico', 30);
+    const lleno = biblioteca.paquetes().find((p) => p.id === 'estatico-1')!;
+
+    const destino = await biblioteca.agregarSticker({ tipo: 'estatico', archivo: 'nuevo.webp' });
+
+    expect(destino.id).toBe('estatico-2');
+    expect(destino.nombre).toBe('Mis stickers 2');
+    expect(destino.stickers).toEqual(['nuevo.webp']);
+    expect(biblioteca.paquetes().find((p) => p.id === 'estatico-1')).toEqual(lleno);
+    expect(lleno.cantidad).toBe(30);
+  });
+
+  it('la numeración sigue y es independiente para estáticos y animados', async () => {
+    const almacen = crearAlmacenEnMemoria();
+    const biblioteca = await abrirBiblioteca(almacen);
+
+    const tercero = await agregarVarios(biblioteca, 'estatico', 61);
+    const animado = await agregarVarios(biblioteca, 'animado', 31);
+
+    expect(tercero.id).toBe('estatico-3');
+    expect(tercero.nombre).toBe('Mis stickers 3');
+    expect(animado.id).toBe('animado-2');
+    expect(animado.nombre).toBe('Mis stickers animados 2');
+    const enPantalla = (await abrirBiblioteca(almacen)).paquetes().map((p) => [p.nombre, p.cantidad]);
+    expect(enPantalla).toEqual([
+      ['Mis stickers', 30],
+      ['Mis stickers 2', 30],
+      ['Mis stickers 3', 1],
+      ['Mis stickers animados', 30],
+      ['Mis stickers animados 2', 1],
+    ]);
+  });
+
+  it('el paquete nuevo muestra cuántos faltan y con 3 stickers se publica con su nombre', async () => {
+    const almacen = crearAlmacenEnMemoria();
+    const biblioteca = await abrirBiblioteca(almacen);
+    await agregarVarios(biblioteca, 'animado', 30, 'viejo');
+
+    const conUno = await biblioteca.agregarSticker({ tipo: 'animado', archivo: 'a.webp' });
+    expect(conUno.faltan).toBe(2);
+    expect(conUno.sePuedeAgregar).toBe(false);
+
+    await biblioteca.agregarSticker({ tipo: 'animado', archivo: 'b.webp' });
+    const conTres = await biblioteca.agregarSticker({ tipo: 'animado', archivo: 'c.webp' });
+
+    expect(conTres.sePuedeAgregar).toBe(true);
+    const indice = JSON.parse((await almacen.leer())!);
+    const segundo = indice.paquetes.find((p: { tipo: string; numero: number }) => p.tipo === 'animado' && p.numero === 2);
+    expect(segundo.publicado).toEqual({
+      version: conTres.version,
+      nombre: 'Mis stickers animados 2',
+      autor: 'StickerCreator',
+      stickers: ['a.webp', 'b.webp', 'c.webp'],
+    });
+  });
+});
