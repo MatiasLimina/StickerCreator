@@ -42,6 +42,12 @@ async function convertir(
 const plural = (n: number, palabra: string) => `${n} ${palabra}${n === 1 ? '' : 's'}`;
 
 /** Cómo terminó una tanda: el aviso de una línea y los paquetes que recibieron stickers, una vez cada uno. */
+/** Un paquete que recibió stickers en la tanda y cuántos. */
+interface PaqueteTocado {
+  paquete: VistaPaquete;
+  agregados: number;
+}
+
 export interface ResultadoTanda {
   aviso: string;
   paquetes: VistaPaquete[];
@@ -56,7 +62,7 @@ export async function convertirTanda(
   biblioteca: Biblioteca,
   archivos: ArchivoDeOrigen[],
 ): Promise<ResultadoTanda> {
-  const porPaquete = new Map<string, { paquete: VistaPaquete; agregados: number }>();
+  const porPaquete = new Map<string, PaqueteTocado>();
   const descartes: string[] = [];
   for (const archivo of archivos) {
     const convertido = await convertir(archivo);
@@ -69,11 +75,11 @@ export async function convertirTanda(
     porPaquete.set(paquete.id, { paquete, agregados: (antes?.agregados ?? 0) + 1 });
   }
   const tocados = [...porPaquete.values()];
-  return { aviso: aviso(tocados, descartes), paquetes: tocados.map((t) => t.paquete) };
+  return { aviso: resumir(tocados, descartes), paquetes: tocados.map((t) => t.paquete) };
 }
 
 /** El resumen de una línea: "3 agregados a Mis stickers, 1 a Mis stickers animados, 1 descartado". */
-function aviso(tocados: { paquete: VistaPaquete; agregados: number }[], descartes: string[]): string {
+function resumir(tocados: PaqueteTocado[], descartes: string[]): string {
   // Un archivo solo: el aviso de siempre, con el motivo si se descartó.
   if (tocados.length + descartes.length === 1) {
     return tocados.length === 1 ? `Agregado a ${tocados[0].paquete.nombre}` : `No se pudo crear el sticker: ${descartes[0]}`;

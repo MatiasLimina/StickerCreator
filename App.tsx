@@ -61,22 +61,27 @@ function Pantalla() {
     return () => suscripcion.remove();
   }, [refrescarAgregados]);
 
-  async function agregar(paquete: VistaPaquete, yaAgregado = false) {
-    setAviso(null);
+  /** Pide a WhatsApp que agregue (o actualice) el paquete y devuelve cómo terminó. */
+  async function pedirAWhatsApp(paquete: VistaPaquete, yaAgregado: boolean) {
     try {
-      const { agregado, aviso: resultado } = await agregarAWhatsApp(paquete, yaAgregado);
-      if (agregado) setAgregados((antes) => ({ ...antes, [paquete.id]: true }));
-      setAviso(resultado);
+      const resultado = await agregarAWhatsApp(paquete, yaAgregado);
+      if (resultado.agregado) setAgregados((antes) => ({ ...antes, [paquete.id]: true }));
+      return resultado;
     } catch (e) {
-      setAviso(`No se pudo abrir WhatsApp: ${mensajeDe(e)}`);
+      return { agregado: false, aviso: `No se pudo abrir WhatsApp: ${mensajeDe(e)}` };
     }
+  }
+
+  async function agregar(paquete: VistaPaquete) {
+    setAviso(null);
+    setAviso((await pedirAWhatsApp(paquete, false)).aviso);
   }
 
   // Las tandas (de la galería o de Compartir) corren de a una: si llega otra
   // mientras se convierte, espera su turno.
   const cola = useRef(Promise.resolve());
   function encolar(tanda: () => Promise<ResultadoTanda | null>, desdeCompartir = false) {
-    cola.current = cola.current.then(() => correrTanda(tanda, desdeCompartir));
+    cola.current = cola.current.then(() => correrTanda(tanda, desdeCompartir)).catch(() => {});
   }
 
   async function correrTanda(tanda: () => Promise<ResultadoTanda | null>, desdeCompartir: boolean) {
@@ -93,10 +98,14 @@ function Pantalla() {
         // WhatsApp no relee solo un paquete que ya tiene: le pedimos que lo
         // actualice, una vez por paquete al final de la tanda, y el usuario lo
         // confirma con un toque. Se lo preguntamos ahora y no al estado de la
-        // pantalla, que puede no estar al día.
+        // pantalla, que puede no estar al día. Si la actualización no se hizo,
+        // ese aviso reemplaza al resumen: dice qué falta hacer.
         for (const paquete of resultado.paquetes) {
-          if (paquete.sePuedeAgregar && (await estaAgregado(paquete))) await agregar(paquete, true);
+          if (!paquete.sePuedeAgregar || !(await estaAgregado(paquete))) continue;
+          const actualizacion = await pedirAWhatsApp(paquete, true);
+          if (!actualizacion.agregado && actualizacion.aviso) resumen = actualizacion.aviso;
         }
+        setAviso(resumen);
       }
     } catch (e) {
       resumen = `No se pudo crear el sticker: ${mensajeDe(e)}`;
@@ -112,8 +121,9 @@ function Pantalla() {
     }
   }
 
-  // Lo que llega por Compartir: al abrir la app y cada vez que se comparte
-  // con la app ya abierta.
+  // Lo que llega por Compartir: al abrir la app, cada vez que se comparte con
+  // la app ya abierta y al volver al frente (por si al abrir todavía no había
+  // actividad). Leer marca lo compartido como leído: no se convierte dos veces.
   useEffect(() => {
     if (!biblioteca) return;
     const recibir = () => {
@@ -124,8 +134,14 @@ function Pantalla() {
         .catch((e: unknown) => setAviso(`No se pudo leer lo compartido: ${mensajeDe(e)}`));
     };
     recibir();
-    const suscripcion = Compartir.addListener('compartido', recibir);
-    return () => suscripcion.remove();
+    const compartido = Compartir.addListener('compartido', recibir);
+    const alFrente = AppState.addEventListener('change', (estado) => {
+      if (estado === 'active') recibir();
+    });
+    return () => {
+      compartido.remove();
+      alFrente.remove();
+    };
     // Solo depende de la biblioteca: encolar usa la cola (una ref) y setters estables.
   }, [biblioteca]);
 
