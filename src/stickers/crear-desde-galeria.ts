@@ -1,34 +1,22 @@
 import { launchImageLibraryAsync, type ImagePickerAsset } from 'expo-image-picker';
-import Conversor from '../../modules/conversor';
-import type { Biblioteca, TipoSticker, VistaPaquete } from '../paquetes/biblioteca';
-import { archivoDeSticker, nombreNuevo } from './carpeta';
+import type { Biblioteca } from '../paquetes/biblioteca';
+import { convertirTanda, type ArchivoDeOrigen, type ResultadoTanda } from './tanda';
 
-/** Un GIF o un video es un sticker animado; cualquier otra imagen, uno estático. */
-function tipoDeSticker(elegido: ImagePickerAsset): TipoSticker {
-  return elegido.type === 'video' || elegido.mimeType === 'image/gif' ? 'animado' : 'estatico';
+/** La galería no siempre informa el tipo MIME: si falta, alcanza con saber si es imagen o video. */
+function archivoDeOrigen(elegido: ImagePickerAsset): ArchivoDeOrigen {
+  const porTipo = elegido.type === 'video' ? 'video/*' : elegido.type === 'image' ? 'image/*' : null;
+  return { uri: elegido.uri, mimeType: elegido.mimeType ?? porTipo };
 }
 
 /**
- * Abre la galería, convierte la imagen, GIF o video elegido y lo guarda en la
- * biblioteca. Devuelve el aviso de una línea para el usuario y el paquete
- * donde quedó el sticker (si se creó), o null si canceló.
+ * Abre la galería, convierte cada imagen, GIF o video elegido y los guarda en
+ * la biblioteca. Devuelve el aviso de una línea para el usuario y los paquetes
+ * donde quedaron stickers nuevos, o null si canceló.
  */
 export async function crearStickerDesdeGaleria(
   biblioteca: Biblioteca,
-): Promise<{ aviso: string; paquete?: VistaPaquete } | null> {
-  const elegida = await launchImageLibraryAsync({ mediaTypes: ['images', 'videos'] });
+): Promise<ResultadoTanda | null> {
+  const elegida = await launchImageLibraryAsync({ mediaTypes: ['images', 'videos'], allowsMultipleSelection: true });
   if (elegida.canceled) return null;
-
-  const [origen] = elegida.assets;
-  const tipo = tipoDeSticker(origen);
-  const nombre = nombreNuevo();
-  const destino = archivoDeSticker(nombre).uri;
-  const resultado =
-    tipo === 'animado'
-      ? await Conversor.convertirAnimado(origen.uri, destino)
-      : await Conversor.convertirImagen(origen.uri, destino);
-  if (resultado.tipo === 'descarte') return { aviso: `No se pudo crear el sticker: ${resultado.motivo}` };
-
-  const paquete = await biblioteca.agregarSticker({ tipo, archivo: nombre });
-  return { aviso: `Agregado a ${paquete.nombre}`, paquete };
+  return convertirTanda(biblioteca, elegida.assets.map(archivoDeOrigen));
 }

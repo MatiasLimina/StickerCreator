@@ -1,12 +1,14 @@
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, Pressable, StyleSheet, Text } from 'react-native';
+import { AppState, Pressable, StyleSheet, Text, ToastAndroid } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { abrirBiblioteca, type Biblioteca, type VistaPaquete } from './src/paquetes/biblioteca';
 import { crearAlmacenEnArchivo } from './src/paquetes/almacen-en-archivo';
 import { PantallaPaquetes } from './src/pantalla/PantallaPaquetes';
 import { archivoDeSticker } from './src/stickers/carpeta';
+import Compartir from './modules/compartir';
 import { crearStickerDesdeGaleria } from './src/stickers/crear-desde-galeria';
+import { convertirTanda, type ResultadoTanda } from './src/stickers/tanda';
 import { agregarAWhatsApp, consultarAgregados, estaAgregado } from './src/whatsapp/agregar';
 
 const mensajeDe = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -70,24 +72,65 @@ function Pantalla() {
     }
   }
 
-  async function elegirDeGaleria() {
+  // Las tandas (de la galería o de Compartir) corren de a una: si llega otra
+  // mientras se convierte, espera su turno.
+  const cola = useRef(Promise.resolve());
+  function encolar(tanda: () => Promise<ResultadoTanda | null>, desdeCompartir = false) {
+    cola.current = cola.current.then(() => correrTanda(tanda, desdeCompartir));
+  }
+
+  async function correrTanda(tanda: () => Promise<ResultadoTanda | null>, desdeCompartir: boolean) {
     if (!biblioteca) return;
     setConvirtiendo(true);
     setAviso(null);
+    let resumen: string | null = null;
     try {
-      const resultado = await crearStickerDesdeGaleria(biblioteca);
-      if (resultado) setAviso(resultado.aviso);
-      setPaquetes(biblioteca.paquetes());
-      // WhatsApp no relee solo un paquete que ya tiene: le pedimos que lo
-      // actualice, y el usuario lo confirma con un toque. Se lo preguntamos
-      // ahora y no al estado de la pantalla, que puede no estar al día.
-      const paquete = resultado?.paquete;
-      if (paquete?.sePuedeAgregar && (await estaAgregado(paquete))) await agregar(paquete, true);
+      const resultado = await tanda();
+      if (resultado) {
+        resumen = resultado.aviso;
+        setAviso(resumen);
+        setPaquetes(biblioteca.paquetes());
+        // WhatsApp no relee solo un paquete que ya tiene: le pedimos que lo
+        // actualice, una vez por paquete al final de la tanda, y el usuario lo
+        // confirma con un toque. Se lo preguntamos ahora y no al estado de la
+        // pantalla, que puede no estar al día.
+        for (const paquete of resultado.paquetes) {
+          if (paquete.sePuedeAgregar && (await estaAgregado(paquete))) await agregar(paquete, true);
+        }
+      }
     } catch (e) {
-      setAviso(`No se pudo crear el sticker: ${mensajeDe(e)}`);
+      resumen = `No se pudo crear el sticker: ${mensajeDe(e)}`;
+      setAviso(resumen);
     } finally {
       setConvirtiendo(false);
     }
+    // Desde Compartir, el aviso tiene que verse sobre la app de origen, a la
+    // que volvemos apenas termina la tanda.
+    if (desdeCompartir) {
+      if (resumen) ToastAndroid.show(resumen, ToastAndroid.LONG);
+      await Compartir.volverAlOrigen().catch(() => {}); // si falla, la app queda abierta con el aviso
+    }
+  }
+
+  // Lo que llega por Compartir: al abrir la app y cada vez que se comparte
+  // con la app ya abierta.
+  useEffect(() => {
+    if (!biblioteca) return;
+    const recibir = () => {
+      Compartir.leerCompartidos()
+        .then((archivos) => {
+          if (archivos.length > 0) encolar(() => convertirTanda(biblioteca, archivos), true);
+        })
+        .catch((e: unknown) => setAviso(`No se pudo leer lo compartido: ${mensajeDe(e)}`));
+    };
+    recibir();
+    const suscripcion = Compartir.addListener('compartido', recibir);
+    return () => suscripcion.remove();
+    // Solo depende de la biblioteca: encolar usa la cola (una ref) y setters estables.
+  }, [biblioteca]);
+
+  function elegirDeGaleria() {
+    if (biblioteca) encolar(() => crearStickerDesdeGaleria(biblioteca));
   }
 
   return (
