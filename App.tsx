@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, Pressable, StyleSheet, Text, ToastAndroid } from 'react-native';
+import { Alert, AppState, BackHandler, Pressable, StyleSheet, Text, ToastAndroid, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { abrirBiblioteca, type Biblioteca, type VistaPaquete } from './src/paquetes/biblioteca';
 import { crearAlmacenEnArchivo } from './src/paquetes/almacen-en-archivo';
@@ -28,6 +28,9 @@ function Pantalla() {
   const [aviso, setAviso] = useState<string | null>(null);
   const [convirtiendo, setConvirtiendo] = useState(false);
   const [agregados, setAgregados] = useState<Record<string, boolean>>({});
+  // Stickers marcados para borrar, como en una galería: con alguno marcado, la pantalla está en modo selección.
+  const [seleccion, setSeleccion] = useState<string[]>([]);
+  const seleccionando = seleccion.length > 0;
 
   useEffect(() => {
     abrirBiblioteca(crearAlmacenEnArchivo(), eliminarArchivoDeSticker)
@@ -99,19 +102,47 @@ function Pantalla() {
     return actualizacion.agregado ? null : actualizacion.aviso;
   }
 
-  function borrar(archivo: string) {
+  const alternar = (archivo: string) =>
+    setSeleccion((antes) => (antes.includes(archivo) ? antes.filter((a) => a !== archivo) : [...antes, archivo]));
+
+  // Atrás sale del modo selección en vez de cerrar la app.
+  useEffect(() => {
+    if (!seleccionando) return;
+    const atras = BackHandler.addEventListener('hardwareBackPress', () => {
+      setSeleccion([]);
+      return true;
+    });
+    return () => atras.remove();
+  }, [seleccionando]);
+
+  function confirmarBorrado() {
+    const archivos = seleccion;
+    const cuantos = archivos.length === 1 ? 'el sticker' : `${archivos.length} stickers`;
+    Alert.alert(`¿Borrar ${cuantos}?`, 'No se puede deshacer.', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Borrar', style: 'destructive', onPress: () => borrar(archivos) },
+    ]);
+  }
+
+  function borrar(archivos: string[]) {
+    setSeleccion([]);
     encolarCambio(async () => {
-      // Dos pulsaciones largas mientras corre una tanda encolan dos borrados: el segundo no tiene nada que hacer.
-      if (!biblioteca || !biblioteca.paquetes().some((p) => p.stickers.includes(archivo))) return;
+      if (!biblioteca) return;
       setAviso(null);
       try {
-        const paquete = await biblioteca.borrarSticker(archivo);
+        const tocados = await biblioteca.borrarStickers(archivos);
+        if (tocados.length === 0) return;
         setPaquetes(biblioteca.paquetes());
-        setAviso(`Sticker borrado de ${paquete.nombre}`);
-        const falta = await actualizarEnWhatsApp(paquete);
-        if (falta) setAviso(falta);
+        let resumen = archivos.length === 1 ? 'Sticker borrado' : `${archivos.length} stickers borrados`;
+        setAviso(resumen);
+        // Una actualización por paquete tocado, como al final de una tanda.
+        for (const paquete of tocados) {
+          const falta = await actualizarEnWhatsApp(paquete);
+          if (falta) resumen = falta;
+        }
+        setAviso(resumen);
       } catch (e) {
-        setAviso(`No se pudo borrar el sticker: ${mensajeDe(e)}`);
+        setAviso(`No se pudieron borrar los stickers: ${mensajeDe(e)}`);
       }
     });
   }
@@ -191,17 +222,30 @@ function Pantalla() {
           agregados={agregados}
           uriDeSticker={(nombre) => archivoDeSticker(nombre).uri}
           onAgregar={agregar}
-          onBorrar={borrar}
+          seleccionados={seleccion}
+          onMantener={(archivo) => (seleccionando ? alternar(archivo) : setSeleccion([archivo]))}
+          onTocar={(archivo) => seleccionando && alternar(archivo)}
         />
       )}
       {aviso && <Text style={styles.aviso}>{aviso}</Text>}
-      <Pressable
-        style={[styles.boton, (!biblioteca || convirtiendo) && styles.botonInactivo]}
-        disabled={!biblioteca || convirtiendo}
-        onPress={elegirDeGaleria}
-      >
-        <Text style={styles.textoBoton}>{convirtiendo ? 'Convirtiendo…' : 'Elegir de la galería'}</Text>
-      </Pressable>
+      {seleccionando ? (
+        <View style={styles.barraSeleccion}>
+          <Pressable style={[styles.boton, styles.botonCancelar]} onPress={() => setSeleccion([])}>
+            <Text style={styles.textoCancelar}>Cancelar</Text>
+          </Pressable>
+          <Pressable style={[styles.boton, styles.botonBorrar]} onPress={confirmarBorrado}>
+            <Text style={styles.textoBoton}>Borrar ({seleccion.length})</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <Pressable
+          style={[styles.boton, (!biblioteca || convirtiendo) && styles.botonInactivo]}
+          disabled={!biblioteca || convirtiendo}
+          onPress={elegirDeGaleria}
+        >
+          <Text style={styles.textoBoton}>{convirtiendo ? 'Convirtiendo…' : 'Elegir de la galería'}</Text>
+        </Pressable>
+      )}
       <StatusBar style="auto" />
     </SafeAreaView>
   );
@@ -214,4 +258,8 @@ const styles = StyleSheet.create({
   boton: { margin: 16, padding: 16, borderRadius: 12, backgroundColor: '#1570EF', alignItems: 'center' },
   botonInactivo: { opacity: 0.5 },
   textoBoton: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  barraSeleccion: { flexDirection: 'row' },
+  botonCancelar: { flex: 1, marginRight: 8, backgroundColor: '#F2F4F7' },
+  botonBorrar: { flex: 1, marginLeft: 8, backgroundColor: '#D92D20' },
+  textoCancelar: { color: '#344054', fontSize: 16, fontWeight: '600' },
 });

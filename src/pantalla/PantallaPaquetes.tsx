@@ -16,11 +16,15 @@ interface Props {
   /** Dónde está el archivo de un sticker, para mostrarlo. */
   uriDeSticker: (archivo: string) => string;
   onAgregar: (paquete: VistaPaquete) => void;
-  /** Una pulsación larga sobre un sticker lo borra. */
-  onBorrar: (archivo: string) => void;
+  /** Stickers marcados para borrar; si hay alguno, la pantalla está en modo selección. */
+  seleccionados: string[];
+  /** Una pulsación larga entra al modo selección con ese sticker. */
+  onMantener: (archivo: string) => void;
+  /** En modo selección, un toque marca o desmarca el sticker. */
+  onTocar: (archivo: string) => void;
 }
 
-export function PantallaPaquetes({ paquetes, agregados, uriDeSticker, onAgregar, onBorrar }: Props) {
+export function PantallaPaquetes({ paquetes, agregados, uriDeSticker, onAgregar, seleccionados, onMantener, onTocar }: Props) {
   return (
     <FlatList
       data={paquetes}
@@ -39,11 +43,23 @@ export function PantallaPaquetes({ paquetes, agregados, uriDeSticker, onAgregar,
             <Text style={[styles.estado, agregado && styles.estadoAgregado]}>{estado(item, agregado)}</Text>
             {item.stickers.length > 0 && (
               <View style={styles.grilla}>
-                {item.stickers.map((archivo) => (
-                  <Pressable key={archivo} onLongPress={() => onBorrar(archivo)} accessibilityLabel="Sticker" accessibilityHint="Mantené apretado para borrarlo">
-                    <Image source={{ uri: uriDeSticker(archivo) }} style={styles.sticker} />
-                  </Pressable>
-                ))}
+                {item.stickers.map((archivo) => {
+                  const marcado = seleccionados.includes(archivo);
+                  return (
+                    <Pressable
+                      key={archivo}
+                      onLongPress={() => onMantener(archivo)}
+                      onPress={() => onTocar(archivo)}
+                      style={[styles.celda, marcado && styles.celdaMarcada]}
+                      accessibilityLabel="Sticker"
+                      accessibilityState={{ selected: marcado }}
+                      accessibilityHint="Mantené apretado para seleccionarlo"
+                    >
+                      <Image source={{ uri: uriDeSticker(archivo) }} style={[styles.sticker, marcado && styles.stickerMarcado]} />
+                      {marcado && <Text style={styles.tilde}>✓</Text>}
+                    </Pressable>
+                  );
+                })}
               </View>
             )}
             {/* Ya agregado, los stickers nuevos llegan solos: no hace falta el botón. */}
@@ -72,7 +88,23 @@ const styles = StyleSheet.create({
   estado: { marginTop: 4, color: '#475467' },
   estadoAgregado: { color: '#067647', fontWeight: '600' },
   grilla: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
+  celda: { borderRadius: 8, borderWidth: 2, borderColor: 'transparent' },
+  celdaMarcada: { borderColor: '#1570EF', backgroundColor: '#D1E0FF' },
   sticker: { width: 72, height: 72 },
+  stickerMarcado: { opacity: 0.6 },
+  tilde: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    overflow: 'hidden',
+    backgroundColor: '#1570EF',
+    color: '#fff',
+    textAlign: 'center',
+    fontWeight: '700',
+  },
   boton: { marginTop: 12, padding: 12, borderRadius: 10, backgroundColor: '#25D366', alignItems: 'center' },
   botonInactivo: { opacity: 0.4 },
   textoBoton: { color: '#fff', fontSize: 15, fontWeight: '600' },

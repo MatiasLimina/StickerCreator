@@ -69,8 +69,11 @@ export interface Biblioteca {
   paquetes(): VistaPaquete[];
   /** Guarda el sticker en el paquete que le corresponde y devuelve ese paquete. */
   agregarSticker(sticker: StickerNuevo): Promise<VistaPaquete>;
-  /** Saca el sticker de su paquete y devuelve ese paquete. */
-  borrarSticker(archivo: string): Promise<VistaPaquete>;
+  /**
+   * Saca los stickers de sus paquetes, con una sola versión nueva por paquete,
+   * y devuelve los paquetes que cambiaron. Un sticker que ya no está se ignora.
+   */
+  borrarStickers(archivos: string[]): Promise<VistaPaquete[]>;
 }
 
 function indiceInicial(): Indice {
@@ -194,14 +197,17 @@ export async function abrirBiblioteca(
       await guardar(enUso);
       return vista(destino);
     },
-    async borrarSticker(archivo) {
-      const paquete = indice.paquetes.find((p) => p.stickers.includes(archivo));
-      if (!paquete) throw new Error(`El sticker ${archivo} no está en ningún paquete`);
+    async borrarStickers(archivos) {
+      const aBorrar = new Set(archivos);
+      const tocados = indice.paquetes.filter((p) => p.stickers.some((a) => aBorrar.has(a)));
+      if (tocados.length === 0) return [];
       const enUso = archivosEnUso(indice);
-      paquete.stickers.splice(paquete.stickers.indexOf(archivo), 1);
-      registrarCambio(paquete);
+      for (const paquete of tocados) {
+        paquete.stickers = paquete.stickers.filter((a) => !aBorrar.has(a));
+        registrarCambio(paquete);
+      }
       await guardar(enUso);
-      return vista(paquete);
+      return tocados.map(vista);
     },
   };
 }

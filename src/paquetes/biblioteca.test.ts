@@ -241,7 +241,7 @@ describe('borrar stickers', () => {
     const biblioteca = await conStickers(crearAlmacenEnMemoria(), ['a.webp', 'b.webp', 'c.webp', 'd.webp']);
     const antes = biblioteca.paquetes()[0];
 
-    const paquete = await biblioteca.borrarSticker('b.webp');
+    const paquete = (await biblioteca.borrarStickers(['b.webp']))[0];
 
     expect(paquete.id).toBe('estatico-1');
     expect(paquete.stickers).toEqual(['a.webp', 'c.webp', 'd.webp']);
@@ -254,7 +254,7 @@ describe('borrar stickers', () => {
     const almacen = crearAlmacenEnMemoria();
     const biblioteca = await conStickers(almacen, ['a.webp', 'b.webp', 'c.webp', 'd.webp']);
 
-    const paquete = await biblioteca.borrarSticker('a.webp');
+    const paquete = (await biblioteca.borrarStickers(['a.webp']))[0];
 
     expect(paquete.icono).toBe('b.webp');
     const publicado = await publicadoEnElIndice(almacen, 'estatico-1');
@@ -267,7 +267,7 @@ describe('borrar stickers', () => {
     const biblioteca = await conStickers(almacen, ['a.webp', 'b.webp', 'c.webp']);
     const valida = await publicadoEnElIndice(almacen, 'estatico-1');
 
-    const conDos = await biblioteca.borrarSticker('a.webp');
+    const conDos = (await biblioteca.borrarStickers(['a.webp']))[0];
 
     expect(conDos.cantidad).toBe(2);
     expect(conDos.sePuedeAgregar).toBe(false);
@@ -281,12 +281,28 @@ describe('borrar stickers', () => {
     expect(nueva.version).toBeGreaterThan(valida.version);
   });
 
-  it('borrar un sticker que no está en ningún paquete falla y no cambia nada', async () => {
+  it('borrar varios de una vez, de dos paquetes, sube una sola versión por paquete', async () => {
+    const biblioteca = await conStickers(crearAlmacenEnMemoria(), ['a.webp', 'b.webp', 'c.webp', 'd.webp']);
+    await biblioteca.agregarSticker({ tipo: 'animado', archivo: 'x.webp' });
+    await biblioteca.agregarSticker({ tipo: 'animado', archivo: 'y.webp' });
+    const [estaticoAntes, animadoAntes] = biblioteca.paquetes();
+
+    const tocados = await biblioteca.borrarStickers(['a.webp', 'x.webp', 'c.webp']);
+
+    expect(tocados.map((p) => [p.id, p.stickers])).toEqual([
+      ['estatico-1', ['b.webp', 'd.webp']],
+      ['animado-1', ['y.webp']],
+    ]);
+    expect(tocados[0].version).toBe(estaticoAntes.version + 1);
+    expect(tocados[1].version).toBe(animadoAntes.version + 1);
+  });
+
+  it('un sticker que ya no está se ignora: si no queda ninguno, no se escribe nada', async () => {
     const almacen = crearAlmacenEnMemoria();
     const biblioteca = await conStickers(almacen, ['a.webp']);
     const antes = await almacen.leer();
 
-    await expect(biblioteca.borrarSticker('otro.webp')).rejects.toThrow('otro.webp');
+    expect(await biblioteca.borrarStickers(['otro.webp'])).toEqual([]);
     expect(await almacen.leer()).toBe(antes);
   });
 
@@ -304,7 +320,7 @@ describe('borrar stickers', () => {
     it('el archivo de un sticker borrado se descarta si WhatsApp no lo tiene publicado', async () => {
       const { biblioteca, descartados } = await conPapelera(['a.webp', 'b.webp', 'c.webp', 'd.webp']);
 
-      await biblioteca.borrarSticker('b.webp');
+      (await biblioteca.borrarStickers(['b.webp']))[0];
 
       expect(descartados).toEqual(['b.webp']);
     });
@@ -312,7 +328,7 @@ describe('borrar stickers', () => {
     it('con menos de 3 el archivo borrado se conserva hasta que la versión publicada lo deja de nombrar', async () => {
       const { biblioteca, descartados } = await conPapelera(['a.webp', 'b.webp', 'c.webp']);
 
-      await biblioteca.borrarSticker('a.webp');
+      (await biblioteca.borrarStickers(['a.webp']))[0];
       expect(descartados).toEqual([]);
 
       await biblioteca.agregarSticker({ tipo: 'estatico', archivo: 'd.webp' });
