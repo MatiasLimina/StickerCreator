@@ -114,7 +114,7 @@ function Pantalla() {
   // Estables (no dependen de la selección actual) para que la grilla redibuje
   // solo la celda que cambia.
   const mantenerSticker = useCallback(
-    (archivo: string) => setSeleccion((antes) => (antes.size > 0 ? alternado(antes, archivo) : new Set([archivo]))),
+    (archivo: string) => setSeleccion((antes) => alternado(antes, archivo)),
     [],
   );
   const tocarSticker = useCallback(

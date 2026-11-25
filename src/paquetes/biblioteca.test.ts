@@ -320,7 +320,7 @@ describe('borrar stickers', () => {
     it('el archivo de un sticker borrado se descarta si WhatsApp no lo tiene publicado', async () => {
       const { biblioteca, descartados } = await conPapelera(['a.webp', 'b.webp', 'c.webp', 'd.webp']);
 
-      (await biblioteca.borrarStickers(['b.webp']))[0];
+      await biblioteca.borrarStickers(['b.webp']);
 
       expect(descartados).toEqual(['b.webp']);
     });
@@ -328,7 +328,7 @@ describe('borrar stickers', () => {
     it('con menos de 3 el archivo borrado se conserva hasta que la versión publicada lo deja de nombrar', async () => {
       const { biblioteca, descartados } = await conPapelera(['a.webp', 'b.webp', 'c.webp']);
 
-      (await biblioteca.borrarStickers(['a.webp']))[0];
+      await biblioteca.borrarStickers(['a.webp']);
       expect(descartados).toEqual([]);
 
       await biblioteca.agregarSticker({ tipo: 'estatico', archivo: 'd.webp' });
