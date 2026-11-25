@@ -1,6 +1,16 @@
 import { abrirBiblioteca } from './biblioteca';
 import { crearAlmacenEnMemoria } from './almacen-en-memoria';
 
+// `paquetes.json` es el contrato con el proveedor de contenido nativo: lo que
+// está en `publicado` es lo único que WhatsApp ve de cada paquete.
+async function publicadoEnElIndice(almacen: ReturnType<typeof crearAlmacenEnMemoria>, id: string) {
+  const indice = JSON.parse((await almacen.leer())!);
+  const paquete = indice.paquetes.find(
+    (p: { tipo: string; numero: number }) => `${p.tipo}-${p.numero}` === id,
+  );
+  return paquete.publicado;
+}
+
 describe('biblioteca de paquetes', () => {
   it('arranca con "Mis stickers" y "Mis stickers animados" vacíos, a 3 de poder agregarse', async () => {
     const biblioteca = await abrirBiblioteca(crearAlmacenEnMemoria());
@@ -78,16 +88,6 @@ describe('biblioteca de paquetes', () => {
 });
 
 describe('lo que la biblioteca publica para WhatsApp', () => {
-  // `paquetes.json` es el contrato con el proveedor de contenido nativo: lo que
-  // está en `publicado` es lo único que WhatsApp ve de cada paquete.
-  async function publicadoEnElIndice(almacen: ReturnType<typeof crearAlmacenEnMemoria>, id: string) {
-    const indice = JSON.parse((await almacen.leer())!);
-    const paquete = indice.paquetes.find(
-      (p: { tipo: string; numero: number }) => `${p.tipo}-${p.numero}` === id,
-    );
-    return paquete.publicado;
-  }
-
   it('cada sticker nuevo sube la versión de datos del paquete', async () => {
     const biblioteca = await abrirBiblioteca(crearAlmacenEnMemoria());
 
@@ -221,9 +221,7 @@ describe('paquetes que se llenan', () => {
     const conTres = await biblioteca.agregarSticker({ tipo: 'animado', archivo: 'c.webp' });
 
     expect(conTres.sePuedeAgregar).toBe(true);
-    const indice = JSON.parse((await almacen.leer())!);
-    const segundo = indice.paquetes.find((p: { tipo: string; numero: number }) => p.tipo === 'animado' && p.numero === 2);
-    expect(segundo.publicado).toEqual({
+    expect(await publicadoEnElIndice(almacen, 'animado-2')).toEqual({
       version: conTres.version,
       nombre: 'Mis stickers animados 2',
       autor: 'StickerCreator',

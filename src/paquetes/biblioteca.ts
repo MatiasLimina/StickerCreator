@@ -140,12 +140,12 @@ function completarIndiceViejo(indice: Indice): boolean {
  */
 function paqueteAbierto(indice: Indice, tipo: TipoSticker): PaqueteGuardado {
   const delTipo = indice.paquetes.filter((p) => p.tipo === tipo);
-  const ultimo = delTipo.reduce((a, b) => (b.numero > a.numero ? b : a));
-  if (ultimo.stickers.length < CAPACIDAD) return ultimo;
-  const nuevo: PaqueteGuardado = { tipo, numero: ultimo.numero + 1, stickers: [], version: 0, publicado: null };
-  const despuesDelUltimo = indice.paquetes.lastIndexOf(delTipo[delTipo.length - 1]) + 1;
-  indice.paquetes.splice(despuesDelUltimo, 0, nuevo);
-  return nuevo;
+  const masNuevo = delTipo.reduce((a, b) => (b.numero > a.numero ? b : a));
+  if (masNuevo.stickers.length < CAPACIDAD) return masNuevo;
+  const siguiente: PaqueteGuardado = { tipo, numero: masNuevo.numero + 1, stickers: [], version: 0, publicado: null };
+  const ultimoEnLista = delTipo[delTipo.length - 1];
+  indice.paquetes.splice(indice.paquetes.indexOf(ultimoEnLista) + 1, 0, siguiente);
+  return siguiente;
 }
 
 export async function abrirBiblioteca(almacen: Almacen): Promise<Biblioteca> {
