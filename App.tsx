@@ -1,17 +1,26 @@
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, Pressable, StyleSheet, Text, ToastAndroid } from 'react-native';
+import { Alert, AppState, BackHandler, Pressable, StyleSheet, Text, ToastAndroid, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { abrirBiblioteca, type Biblioteca, type VistaPaquete } from './src/paquetes/biblioteca';
 import { crearAlmacenEnArchivo } from './src/paquetes/almacen-en-archivo';
 import { PantallaPaquetes } from './src/pantalla/PantallaPaquetes';
-import { archivoDeSticker } from './src/stickers/carpeta';
+import { archivoDeSticker, eliminarArchivoDeSticker } from './src/stickers/carpeta';
 import Compartir from './modules/compartir';
 import { crearStickerDesdeGaleria } from './src/stickers/crear-desde-galeria';
 import { convertirTanda, type ResultadoTanda } from './src/stickers/tanda';
 import { agregarAWhatsApp, consultarAgregados, estaAgregado } from './src/whatsapp/agregar';
 
 const mensajeDe = (e: unknown) => (e instanceof Error ? e.message : String(e));
+const uriDeSticker = (nombre: string) => archivoDeSticker(nombre).uri;
+const SIN_SELECCION: ReadonlySet<string> = new Set();
+
+/** La selección con `archivo` marcado si no lo estaba, o desmarcado si lo estaba. */
+function alternado(seleccion: ReadonlySet<string>, archivo: string): ReadonlySet<string> {
+  const nueva = new Set(seleccion);
+  if (!nueva.delete(archivo)) nueva.add(archivo);
+  return nueva;
+}
 
 export default function App() {
   return (
@@ -28,9 +37,12 @@ function Pantalla() {
   const [aviso, setAviso] = useState<string | null>(null);
   const [convirtiendo, setConvirtiendo] = useState(false);
   const [agregados, setAgregados] = useState<Record<string, boolean>>({});
+  // Stickers marcados para borrar, como en una galería: con alguno marcado, la pantalla está en modo selección.
+  const [seleccion, setSeleccion] = useState<ReadonlySet<string>>(SIN_SELECCION);
+  const seleccionando = seleccion.size > 0;
 
   useEffect(() => {
-    abrirBiblioteca(crearAlmacenEnArchivo())
+    abrirBiblioteca(crearAlmacenEnArchivo(), eliminarArchivoDeSticker)
       .then((abierta) => {
         setBiblioteca(abierta);
         setPaquetes(abierta.paquetes());
@@ -77,11 +89,79 @@ function Pantalla() {
     setAviso((await pedirAWhatsApp(paquete, false)).aviso);
   }
 
-  // Las tandas (de la galería o de Compartir) corren de a una: si llega otra
-  // mientras se convierte, espera su turno.
+  // Todo lo que cambia la biblioteca (tandas de la galería o de Compartir y
+  // borrados) corre de a uno: si llega algo mientras se convierte, espera su
+  // turno. Así dos escrituras del índice nunca se pisan.
   const cola = useRef(Promise.resolve());
+  function encolarCambio(tarea: () => Promise<void>) {
+    cola.current = cola.current.then(tarea).catch(() => {});
+  }
   function encolar(tanda: () => Promise<ResultadoTanda | null>, desdeCompartir = false) {
-    cola.current = cola.current.then(() => correrTanda(tanda, desdeCompartir)).catch(() => {});
+    encolarCambio(() => correrTanda(tanda, desdeCompartir));
+  }
+
+  /**
+   * Pide a WhatsApp que actualice un paquete que ya tiene (ADR 0002). Con
+   * menos de 3 no hay contenido nuevo publicado: no se pide nada. Devuelve el
+   * aviso si la actualización no se hizo.
+   */
+  async function actualizarEnWhatsApp(paquete: VistaPaquete): Promise<string | null> {
+    if (!paquete.sePuedeAgregar || !(await estaAgregado(paquete))) return null;
+    const actualizacion = await pedirAWhatsApp(paquete, true);
+    return actualizacion.agregado ? null : actualizacion.aviso;
+  }
+
+  // Estables (no dependen de la selección actual) para que la grilla redibuje
+  // solo la celda que cambia.
+  const mantenerSticker = useCallback(
+    (archivo: string) => setSeleccion((antes) => alternado(antes, archivo)),
+    [],
+  );
+  const tocarSticker = useCallback(
+    (archivo: string) => setSeleccion((antes) => (antes.size > 0 ? alternado(antes, archivo) : antes)),
+    [],
+  );
+
+  // Atrás sale del modo selección en vez de cerrar la app.
+  useEffect(() => {
+    if (!seleccionando) return;
+    const atras = BackHandler.addEventListener('hardwareBackPress', () => {
+      setSeleccion(SIN_SELECCION);
+      return true;
+    });
+    return () => atras.remove();
+  }, [seleccionando]);
+
+  function confirmarBorrado() {
+    const archivos = [...seleccion];
+    const cuantos = archivos.length === 1 ? 'el sticker' : `${archivos.length} stickers`;
+    Alert.alert(`¿Borrar ${cuantos}?`, 'No se puede deshacer.', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Borrar', style: 'destructive', onPress: () => borrar(archivos) },
+    ]);
+  }
+
+  function borrar(archivos: string[]) {
+    setSeleccion(SIN_SELECCION);
+    encolarCambio(async () => {
+      if (!biblioteca) return;
+      setAviso(null);
+      try {
+        const tocados = await biblioteca.borrarStickers(archivos);
+        if (tocados.length === 0) return;
+        setPaquetes(biblioteca.paquetes());
+        let resumen = archivos.length === 1 ? 'Sticker borrado' : `${archivos.length} stickers borrados`;
+        setAviso(resumen);
+        // Una actualización por paquete tocado, como al final de una tanda.
+        for (const paquete of tocados) {
+          const falta = await actualizarEnWhatsApp(paquete);
+          if (falta) resumen = falta;
+        }
+        setAviso(resumen);
+      } catch (e) {
+        setAviso(`No se pudieron borrar los stickers: ${mensajeDe(e)}`);
+      }
+    });
   }
 
   async function correrTanda(tanda: () => Promise<ResultadoTanda | null>, desdeCompartir: boolean) {
@@ -101,9 +181,8 @@ function Pantalla() {
         // pantalla, que puede no estar al día. Si la actualización no se hizo,
         // ese aviso reemplaza al resumen: dice qué falta hacer.
         for (const paquete of resultado.paquetes) {
-          if (!paquete.sePuedeAgregar || !(await estaAgregado(paquete))) continue;
-          const actualizacion = await pedirAWhatsApp(paquete, true);
-          if (!actualizacion.agregado && actualizacion.aviso) resumen = actualizacion.aviso;
+          const falta = await actualizarEnWhatsApp(paquete);
+          if (falta) resumen = falta;
         }
         setAviso(resumen);
       }
@@ -158,18 +237,32 @@ function Pantalla() {
         <PantallaPaquetes
           paquetes={paquetes}
           agregados={agregados}
-          uriDeSticker={(nombre) => archivoDeSticker(nombre).uri}
+          uriDeSticker={uriDeSticker}
           onAgregar={agregar}
+          seleccionados={seleccion}
+          onMantener={mantenerSticker}
+          onTocar={tocarSticker}
         />
       )}
       {aviso && <Text style={styles.aviso}>{aviso}</Text>}
-      <Pressable
-        style={[styles.boton, (!biblioteca || convirtiendo) && styles.botonInactivo]}
-        disabled={!biblioteca || convirtiendo}
-        onPress={elegirDeGaleria}
-      >
-        <Text style={styles.textoBoton}>{convirtiendo ? 'Convirtiendo…' : 'Elegir de la galería'}</Text>
-      </Pressable>
+      {seleccionando ? (
+        <View style={styles.barraSeleccion}>
+          <Pressable style={[styles.boton, styles.botonCancelar]} onPress={() => setSeleccion(SIN_SELECCION)}>
+            <Text style={styles.textoCancelar}>Cancelar</Text>
+          </Pressable>
+          <Pressable style={[styles.boton, styles.botonBorrar]} onPress={confirmarBorrado}>
+            <Text style={styles.textoBoton}>Borrar ({seleccion.size})</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <Pressable
+          style={[styles.boton, (!biblioteca || convirtiendo) && styles.botonInactivo]}
+          disabled={!biblioteca || convirtiendo}
+          onPress={elegirDeGaleria}
+        >
+          <Text style={styles.textoBoton}>{convirtiendo ? 'Convirtiendo…' : 'Elegir de la galería'}</Text>
+        </Pressable>
+      )}
       <StatusBar style="auto" />
     </SafeAreaView>
   );
@@ -182,4 +275,8 @@ const styles = StyleSheet.create({
   boton: { margin: 16, padding: 16, borderRadius: 12, backgroundColor: '#1570EF', alignItems: 'center' },
   botonInactivo: { opacity: 0.5 },
   textoBoton: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  barraSeleccion: { flexDirection: 'row' },
+  botonCancelar: { flex: 1, marginRight: 8, backgroundColor: '#F2F4F7' },
+  botonBorrar: { flex: 1, marginLeft: 8, backgroundColor: '#D92D20' },
+  textoCancelar: { color: '#344054', fontSize: 16, fontWeight: '600' },
 });

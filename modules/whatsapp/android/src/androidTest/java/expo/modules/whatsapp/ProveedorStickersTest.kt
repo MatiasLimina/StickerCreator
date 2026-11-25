@@ -175,6 +175,31 @@ class ProveedorStickersTest {
   }
 
   @Test
+  fun conMenosDeTresStickersSigueSirviendoLaUltimaVersionValida() {
+    // Se borró "a.webp" de un paquete de 3: el contenido bajó a 2 y subió de
+    // versión, pero lo publicado sigue siendo la versión 3 (ver los tests de
+    // "borrar stickers" de la biblioteca).
+    guardarIndice(
+      """{"paquetes":[{"tipo":"estatico","numero":1,"stickers":["b.webp","c.webp"],"version":4,
+        "publicado":{"version":3,"nombre":"Mis stickers","autor":"StickerCreator","stickers":["a.webp","b.webp","c.webp"]}}]}""",
+    )
+    sticker("a.webp", Color.RED)
+    sticker("b.webp", Color.GREEN)
+    sticker("c.webp", Color.BLUE)
+
+    val paquete = filas(consultar("metadata", "estatico-1")).single()
+
+    assertEquals("3", paquete["image_data_version"])
+    assertEquals(
+      listOf("a.webp", "b.webp", "c.webp"),
+      filas(consultar("stickers", "estatico-1")).map { it["sticker_file_name"] },
+    )
+    val leido = contexto.contentResolver.openInputStream(uri("stickers_asset", "estatico-1", "a.webp"))!!
+      .use { it.readBytes() }
+    assertArrayEquals(File(stickers, "a.webp").readBytes(), leido)
+  }
+
+  @Test
   fun noSirveArchivosQueNoSonDelPaquete() {
     guardarIndice("""{"paquetes":[$estaticoPublicado]}""")
     File(contexto.filesDir, "secreto.txt").writeText("no")
