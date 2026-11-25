@@ -20,8 +20,10 @@ jest.mock('../../modules/conversor', () => ({
 const elegir = jest.mocked(launchImageLibraryAsync);
 const conversor = jest.mocked(Conversor);
 
-function eligio(asset: { uri: string; type: 'image' | 'video'; mimeType: string }) {
-  elegir.mockResolvedValue({ canceled: false, assets: [asset] } as never);
+type Elegido = { uri: string; type: 'image' | 'video'; mimeType?: string };
+
+function eligio(...assets: Elegido[]) {
+  elegir.mockResolvedValue({ canceled: false, assets } as never);
 }
 
 beforeEach(() => {
@@ -51,7 +53,7 @@ describe('crear un sticker desde la galería', () => {
     const resultado = await crearStickerDesdeGaleria(biblioteca);
 
     expect(conversor.convertirAnimado).toHaveBeenCalledWith('content://video', expect.any(String));
-    expect(resultado?.paquete?.nombre).toBe('Mis stickers animados');
+    expect(resultado?.paquetes.map((p) => p.nombre)).toEqual(['Mis stickers animados']);
   });
 
   it('una foto sigue yendo a "Mis stickers"', async () => {
@@ -62,7 +64,7 @@ describe('crear un sticker desde la galería', () => {
 
     expect(conversor.convertirImagen).toHaveBeenCalled();
     expect(conversor.convertirAnimado).not.toHaveBeenCalled();
-    expect(resultado?.paquete?.nombre).toBe('Mis stickers');
+    expect(resultado?.paquetes.map((p) => p.nombre)).toEqual(['Mis stickers']);
   });
 
   it('un video que no entra en el peso se descarta con el motivo y no se guarda', async () => {
@@ -72,7 +74,22 @@ describe('crear un sticker desde la galería', () => {
 
     const resultado = await crearStickerDesdeGaleria(biblioteca);
 
-    expect(resultado).toEqual({ aviso: 'No se pudo crear el sticker: no entra en 500 KB' });
+    expect(resultado).toEqual({ aviso: 'No se pudo crear el sticker: no entra en 500 KB', paquetes: [] });
     expect(biblioteca.paquetes().every((p) => p.cantidad === 0)).toBe(true);
+  });
+
+  it('se pueden elegir varios archivos: uno por sticker, cada uno en su paquete', async () => {
+    const biblioteca = await abrirBiblioteca(crearAlmacenEnMemoria());
+    eligio(
+      { uri: 'content://foto', type: 'image', mimeType: 'image/jpeg' },
+      { uri: 'content://video', type: 'video' },
+      { uri: 'content://foto2', type: 'image', mimeType: 'image/png' },
+    );
+
+    const resultado = await crearStickerDesdeGaleria(biblioteca);
+
+    expect(elegir).toHaveBeenCalledWith(expect.objectContaining({ allowsMultipleSelection: true }));
+    expect(resultado?.aviso).toBe('2 agregados a Mis stickers, 1 a Mis stickers animados');
+    expect(resultado?.paquetes.map((p) => p.nombre)).toEqual(['Mis stickers', 'Mis stickers animados']);
   });
 });

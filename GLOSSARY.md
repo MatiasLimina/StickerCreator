@@ -26,6 +26,10 @@ Paquete que solo contiene stickers animados, generados a partir de GIFs o videos
 La porción de un GIF o video que se convierte en sticker animado; por defecto, los primeros segundos.
 _Avoid_: Clip, recorte, fragmento
 
+**Tanda**:
+Los archivos de origen que llegan juntos, compartidos o elegidos de la galería en un solo gesto. Cada uno se convierte por separado; la tanda termina con un aviso de una línea y una sola actualización a WhatsApp por paquete.
+_Avoid_: Lote, batch
+
 **Agregar a WhatsApp**:
 Publicar o actualizar un paquete para que aparezca en la bandeja de stickers de WhatsApp.
 _Avoid_: Instalar, exportar, enviar
