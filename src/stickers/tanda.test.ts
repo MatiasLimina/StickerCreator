@@ -70,6 +70,13 @@ describe('convertir una tanda de archivos de origen', () => {
     expect((await convertirTanda(biblioteca, [foto])).aviso).toBe('No se pudo crear el sticker: no entra en 100 KB');
   });
 
+  it('varios archivos al mismo paquete se cuentan, aunque no haya descartes', async () => {
+    const biblioteca = await abrirBiblioteca(crearAlmacenEnMemoria());
+    const foto = { uri: 'content://foto', mimeType: 'image/jpeg' };
+
+    expect((await convertirTanda(biblioteca, [foto, foto, foto])).aviso).toBe('3 agregados a Mis stickers');
+  });
+
   it('devuelve cada paquete tocado una sola vez, con todos los stickers de la tanda', async () => {
     const biblioteca = await abrirBiblioteca(crearAlmacenEnMemoria());
     const foto = { uri: 'content://foto', mimeType: 'image/jpeg' };

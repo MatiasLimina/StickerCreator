@@ -51,9 +51,10 @@ class CompartirModule : Module() {
       Intent.ACTION_SEND_MULTIPLE -> extraUris(intent)
       else -> emptyList()
     }
-    // El tipo que declara el intent puede ser genérico ("*/*" al compartir
-    // fotos y videos juntos): preferimos el de cada archivo.
-    val tipoDelIntent = intent?.type?.takeUnless { it.contains('*') }
+    // El tipo que declara el intent es el de toda la tanda ("*/*" al compartir
+    // fotos y videos juntos): preferimos el de cada archivo. Un "image/*" o
+    // "video/*" sirve igual, porque alcanza para saber qué sticker crear.
+    val tipoDelIntent = intent?.type?.takeUnless { it == "*/*" }
     return uris.map { uri ->
       mapOf("uri" to uri.toString(), "mimeType" to (resolver.getType(uri) ?: tipoDelIntent))
     }

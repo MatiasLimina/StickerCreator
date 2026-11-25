@@ -81,7 +81,8 @@ export async function convertirTanda(
 /** El resumen de una línea: "3 agregados a Mis stickers, 1 a Mis stickers animados, 1 descartado". */
 function resumir(tocados: PaqueteTocado[], descartes: string[]): string {
   // Un archivo solo: el aviso de siempre, con el motivo si se descartó.
-  if (tocados.length + descartes.length === 1) {
+  const agregados = tocados.reduce((total, t) => total + t.agregados, 0);
+  if (agregados + descartes.length === 1) {
     return tocados.length === 1 ? `Agregado a ${tocados[0].paquete.nombre}` : `No se pudo crear el sticker: ${descartes[0]}`;
   }
   const partes = tocados.map(({ paquete, agregados }, i) =>
