@@ -22,8 +22,12 @@ const TEXTO_SUAVE = '#475467';
 const ACENTO = '#1570EF';
 const SELECCION = '#D1E0FF';
 const BORDE = '#E4E7EC';
+const DESTRUCTIVO = '#D92D20';
+const BORDE_CONTROL = '#D0D5DD';
 
 const LADO_VISTA_PREVIA = 312;
+/** Lo que ocupa la línea «Sin audio · Loop» debajo del cuadro, con su margen y el de la zona. */
+const DEBAJO_DEL_CUADRO = 36;
 /** Área táctil de cada manija, por fuera del tramo. */
 const MANIJA = 48;
 /** Lo que una manija se mete dentro del tramo, si el bloque es ancho. */
@@ -47,19 +51,26 @@ interface Props {
   /** El video del que se elige el tramo. */
   uri: string;
   duracionVideo: number;
-  onCrear: (tramo: Tramo) => void;
-  /** Volver (flecha o atrás de Android): no se crea nada. */
+  /** Qué selector de la fila es («2 de 3»); con uno solo no se muestra. */
+  numero: number;
+  total: number;
+  /** Si la tanda trae otros archivos: volver la cancela entera, y la pantalla lo avisa. */
+  enTanda: boolean;
+  /** «Crear» o «Siguiente»; con `restoAutomatico`, «Usar automático para el resto». */
+  onElegir: (tramo: Tramo, restoAutomatico: boolean) => void;
+  /** Volver (flecha o atrás de Android): no se crea nada (en una tanda, nada de la tanda). */
   onVolver: () => void;
 }
 
 /**
- * El selector de tramo de un video suelto, superpuesto a la pantalla de
+ * El selector de tramo de un video, superpuesto a la pantalla de
  * paquetes. Las reglas (topes, bordes, ventana de la regla) viven en
  * `stickers/tramo`: acá solo se dibuja y se traducen los gestos.
  */
-export function SelectorDeTramo({ uri, duracionVideo, onCrear, onVolver }: Props) {
+export function SelectorDeTramo({ uri, duracionVideo, numero, total, enTanda, onElegir, onVolver }: Props) {
   const [tramo, setTramo] = useState(() => tramoInicial(duracionVideo));
   const puede = sePuedeMover(tramo, duracionVideo);
+  const quedanMas = numero < total;
 
   return (
     <Modal visible animationType="slide" onRequestClose={onVolver} statusBarTranslucent navigationBarTranslucent>
@@ -69,12 +80,21 @@ export function SelectorDeTramo({ uri, duracionVideo, onCrear, onVolver }: Props
             style={styles.botonVolver}
             onPress={onVolver}
             accessibilityRole="button"
-            accessibilityLabel="Volver sin crear el sticker"
+            accessibilityLabel={enTanda ? 'Volver y cancelar la tanda' : 'Volver sin crear el sticker'}
           >
             <Text style={styles.flecha}>←</Text>
           </Pressable>
-          <Text style={styles.titulo}>Selector de tramo</Text>
-          <Text style={styles.meta}>Video {tiempo(duracionVideo)}</Text>
+          <View style={styles.pilaTitulo}>
+            <Text style={styles.titulo}>Selector de tramo</Text>
+            {enTanda && <Text style={styles.avisoTanda}>Volver cancela la tanda</Text>}
+          </View>
+          {total > 1 ? (
+            <Text style={styles.posicion}>
+              {numero} de {total}
+            </Text>
+          ) : (
+            <Text style={styles.meta}>Video {tiempo(duracionVideo)}</Text>
+          )}
         </View>
 
         <VistaPrevia uri={uri} tramo={tramo} />
@@ -103,9 +123,16 @@ export function SelectorDeTramo({ uri, duracionVideo, onCrear, onVolver }: Props
           </View>
         </View>
 
-        <Pressable style={styles.crear} onPress={() => onCrear(tramo)} accessibilityRole="button">
-          <Text style={styles.textoCrear}>Crear</Text>
-        </Pressable>
+        <View style={styles.zonaPulgar}>
+          {quedanMas && (
+            <Pressable style={styles.secundario} onPress={() => onElegir(tramo, true)} accessibilityRole="button">
+              <Text style={styles.textoSecundario}>Usar automático para el resto</Text>
+            </Pressable>
+          )}
+          <Pressable style={styles.crear} onPress={() => onElegir(tramo, false)} accessibilityRole="button">
+            <Text style={styles.textoCrear}>{quedanMas ? 'Siguiente' : 'Crear'}</Text>
+          </Pressable>
+        </View>
       </SafeAreaView>
     </Modal>
   );
@@ -139,6 +166,7 @@ function BotonFino({
 /** El video encajado en un cuadrado, sin audio, en loop entre el inicio y el fin del tramo. */
 function VistaPrevia({ uri, tramo }: { uri: string; tramo: Tramo }) {
   const [posicion, setPosicion] = useState(tramo.inicio);
+  const [lado, setLado] = useState(LADO_VISTA_PREVIA);
   // El listener lee siempre el tramo actual sin volver a suscribirse.
   const tramoActual = useRef(tramo);
   tramoActual.current = tramo;
@@ -164,8 +192,15 @@ function VistaPrevia({ uri, tramo }: { uri: string; tramo: Tramo }) {
   }, [player, tramo.inicio, tramo.fin]);
 
   return (
-    <View style={styles.zonaVistaPrevia}>
-      <View style={styles.cuadro}>
+    // En una tanda, con «Usar automático para el resto», puede no haber alto
+    // para 312 dp: el cuadro se achica al espacio que queda, sin tapar nada.
+    <View
+      style={styles.zonaVistaPrevia}
+      onLayout={(e: LayoutChangeEvent) =>
+        setLado(Math.min(LADO_VISTA_PREVIA, Math.max(0, e.nativeEvent.layout.height - DEBAJO_DEL_CUADRO)))
+      }
+    >
+      <View style={[styles.cuadro, { width: lado, height: lado }]}>
         <Damero />
         <VideoView
           player={player}
@@ -176,7 +211,7 @@ function VistaPrevia({ uri, tramo }: { uri: string; tramo: Tramo }) {
           surfaceType="textureView"
         />
       </View>
-      <View style={styles.debajoDelCuadro}>
+      <View style={[styles.debajoDelCuadro, { width: lado }]}>
         <Text style={styles.meta}>🔇 Sin audio · Loop</Text>
         <Text style={styles.meta}>{tiempo(posicion, true)}</Text>
       </View>
@@ -384,7 +419,8 @@ const NUMEROS = { fontVariant: ['tabular-nums'] } as const;
 const styles = StyleSheet.create({
   pantalla: { flex: 1, backgroundColor: FONDO },
   barraSuperior: {
-    height: 54,
+    minHeight: 54,
+    paddingVertical: 4,
     paddingLeft: 4,
     paddingRight: 16,
     flexDirection: 'row',
@@ -394,20 +430,30 @@ const styles = StyleSheet.create({
   },
   botonVolver: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
   flecha: { fontSize: 22, color: TEXTO },
-  titulo: { flex: 1, marginLeft: 4, fontSize: 18, fontWeight: '600', color: TEXTO },
+  pilaTitulo: { flex: 1, marginLeft: 4, gap: 2 },
+  titulo: { fontSize: 18, fontWeight: '600', color: TEXTO },
+  avisoTanda: { fontSize: 12, fontWeight: '600', color: DESTRUCTIVO },
+  posicion: {
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    backgroundColor: SELECCION,
+    fontSize: 13,
+    fontWeight: '600',
+    color: TEXTO,
+    ...NUMEROS,
+  },
   meta: { fontSize: 12, fontWeight: '500', color: TEXTO_SUAVE, ...NUMEROS },
 
   zonaVistaPrevia: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 6 },
   cuadro: {
-    width: LADO_VISTA_PREVIA,
-    height: LADO_VISTA_PREVIA,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: BORDE,
     overflow: 'hidden',
   },
   filaDamero: { flexDirection: 'row' },
-  debajoDelCuadro: { width: LADO_VISTA_PREVIA, marginTop: 6, flexDirection: 'row', justifyContent: 'space-between' },
+  debajoDelCuadro: { marginTop: 6, flexDirection: 'row', justifyContent: 'space-between' },
 
   tarjeta: { marginHorizontal: 16, padding: 12, borderRadius: 12, backgroundColor: SUPERFICIE, gap: 9 },
   lectura: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
@@ -479,7 +525,7 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#D0D5DD',
+    borderColor: BORDE_CONTROL,
     backgroundColor: FONDO,
     alignItems: 'center',
     justifyContent: 'center',
@@ -487,6 +533,18 @@ const styles = StyleSheet.create({
   botonFinoInactivo: { opacity: 0.38 },
   textoFino: { fontSize: 14, fontWeight: '600', color: TEXTO, ...NUMEROS },
 
-  crear: { margin: 16, padding: 16, borderRadius: 12, backgroundColor: ACENTO, alignItems: 'center' },
+  zonaPulgar: { padding: 16, gap: 8 },
+  secundario: {
+    minHeight: 48,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: BORDE_CONTROL,
+    backgroundColor: FONDO,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  textoSecundario: { fontSize: 14, fontWeight: '600', color: TEXTO },
+  crear: { padding: 16, borderRadius: 12, backgroundColor: ACENTO, alignItems: 'center' },
   textoCrear: { color: FONDO, fontSize: 16, fontWeight: '600' },
 });

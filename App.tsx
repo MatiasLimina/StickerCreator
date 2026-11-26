@@ -9,19 +9,22 @@ import { SelectorDeTramo } from './src/pantalla/SelectorDeTramo';
 import { archivoDeSticker, eliminarArchivoDeSticker } from './src/stickers/carpeta';
 import Compartir from './modules/compartir';
 import { crearStickerDesdeGaleria } from './src/stickers/crear-desde-galeria';
-import { convertirTanda, type ArchivoDeOrigen, type ElegirTramo, type ResultadoTanda } from './src/stickers/tanda';
-import type { Tramo } from './src/stickers/tramo';
+import {
+  convertirTanda,
+  type EleccionDeTramo,
+  type ElegirTramo,
+  type PedidoDeTramo,
+  type ResultadoTanda,
+} from './src/stickers/tanda';
 import { agregarAWhatsApp, consultarAgregados, estaAgregado } from './src/whatsapp/agregar';
 
 const mensajeDe = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const uriDeSticker = (nombre: string) => archivoDeSticker(nombre).uri;
 const SIN_SELECCION: ReadonlySet<string> = new Set();
 
-/** Un selector de tramo abierto: la tanda espera a que `responder` le diga el tramo (o null si el usuario volvió). */
-interface PedidoDeTramo {
-  archivo: ArchivoDeOrigen;
-  duracionVideo: number;
-  responder: (tramo: Tramo | null) => void;
+/** Un selector de tramo abierto: la tanda espera a que `responder` le diga la elección (o null si el usuario volvió). */
+interface SelectorAbierto extends PedidoDeTramo {
+  responder: (eleccion: EleccionDeTramo | null) => void;
 }
 
 /** La selección con `archivo` marcado si no lo estaba, o desmarcado si lo estaba. */
@@ -53,22 +56,26 @@ function Pantalla() {
   // Stickers marcados para borrar, como en una galería: con alguno marcado, la pantalla está en modo selección.
   const [seleccion, setSeleccion] = useState<ReadonlySet<string>>(SIN_SELECCION);
   const seleccionando = seleccion.size > 0;
-  const [pedidoDeTramo, setPedidoDeTramo] = useState<PedidoDeTramo | null>(null);
+  const [selectorAbierto, setSelectorAbierto] = useState<SelectorAbierto | null>(null);
 
   // La tanda (que corre en la cola de cambios) se queda esperando acá mientras
   // el selector está abierto: lo que llegue por Compartir espera su turno.
+  // Solo vale la primera respuesta: un doble toque en «Siguiente» no tiene que
+  // cerrar el selector del video que sigue, que ya se abrió.
   const elegirTramo = useCallback<ElegirTramo>(
-    (archivo, duracionVideo) =>
-      new Promise((resolver) =>
-        setPedidoDeTramo({
-          archivo,
-          duracionVideo,
-          responder: (tramo) => {
-            setPedidoDeTramo(null);
-            resolver(tramo);
+    (pedido) =>
+      new Promise((resolver) => {
+        let respondido = false;
+        setSelectorAbierto({
+          ...pedido,
+          responder: (eleccion) => {
+            if (respondido) return;
+            respondido = true;
+            setSelectorAbierto(null);
+            resolver(eleccion);
           },
-        }),
-      ),
+        });
+      }),
     [],
   );
 
@@ -300,12 +307,17 @@ function Pantalla() {
           <Text style={styles.textoBoton}>{convirtiendo ? 'Convirtiendo…' : 'Elegir de la galería'}</Text>
         </Pressable>
       )}
-      {pedidoDeTramo && (
+      {selectorAbierto && (
         <SelectorDeTramo
-          uri={pedidoDeTramo.archivo.uri}
-          duracionVideo={pedidoDeTramo.duracionVideo}
-          onCrear={pedidoDeTramo.responder}
-          onVolver={() => pedidoDeTramo.responder(null)}
+          // Una instancia por video de la fila: cada selector arranca con su propio tramo inicial.
+          key={selectorAbierto.numero}
+          uri={selectorAbierto.archivo.uri}
+          duracionVideo={selectorAbierto.duracionVideo}
+          numero={selectorAbierto.numero}
+          total={selectorAbierto.total}
+          enTanda={selectorAbierto.enTanda}
+          onElegir={(tramo, restoAutomatico) => selectorAbierto.responder({ tramo, restoAutomatico })}
+          onVolver={() => selectorAbierto.responder(null)}
         />
       )}
       <StatusBar style="auto" />

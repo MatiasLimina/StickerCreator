@@ -94,11 +94,11 @@ describe('elegir el tramo de un video suelto antes de convertirlo', () => {
   it('un video de más de 5 s pide el selector con su duración y se convierte con el tramo elegido', async () => {
     const biblioteca = await abrirBiblioteca(crearAlmacenEnMemoria());
     conversor.duracionDeVideo.mockResolvedValue(18_000);
-    const elegirTramo = jest.fn().mockResolvedValue(tramoElegido);
+    const elegirTramo = jest.fn().mockResolvedValue({ tramo: tramoElegido });
 
     const resultado = await convertirTanda(biblioteca, [video], elegirTramo);
 
-    expect(elegirTramo).toHaveBeenCalledWith(video, 18_000);
+    expect(elegirTramo).toHaveBeenCalledWith({ archivo: video, duracionVideo: 18_000, numero: 1, total: 1, enTanda: false });
     expect(conversor.convertirAnimado).toHaveBeenCalledWith('content://video', expect.any(String), {
       inicioMs: 12_000,
       finMs: 15_000,
@@ -157,7 +157,7 @@ describe('elegir el tramo de un video suelto antes de convertirlo', () => {
       duracionMs: 3000,
     }));
 
-    const resultado = await convertirTanda(biblioteca, [video], jest.fn().mockResolvedValue({ inicio: 10_000, fin: 15_000 }));
+    const resultado = await convertirTanda(biblioteca, [video], jest.fn().mockResolvedValue({ tramo: { inicio: 10_000, fin: 15_000 } }));
 
     expect(resultado?.aviso).toBe('Agregado a Mis stickers animados · 1 tramo se acortó a 3 s');
     expect(resultado?.acortados).toBe(1);
@@ -172,20 +172,106 @@ describe('elegir el tramo de un video suelto antes de convertirlo', () => {
       duracionMs: 3000,
     }));
 
-    const resultado = await convertirTanda(biblioteca, [video], jest.fn().mockResolvedValue(tramoElegido));
+    const resultado = await convertirTanda(biblioteca, [video], jest.fn().mockResolvedValue({ tramo: tramoElegido }));
 
     expect(resultado?.aviso).toBe('Agregado a Mis stickers animados');
     expect(resultado?.acortados).toBe(0);
   });
+});
 
-  it('en una tanda de varios archivos, los videos largos siguen con el tramo automático (los selectores en fila son de #27)', async () => {
+describe('selectores de tramo en fila dentro de una tanda', () => {
+  const largo1 = { uri: 'content://largo1', mimeType: 'video/mp4' };
+  const largo2 = { uri: 'content://largo2', mimeType: 'video/mp4' };
+  const largo3 = { uri: 'content://largo3', mimeType: 'video/mp4' };
+  const foto = { uri: 'content://foto', mimeType: 'image/jpeg' };
+  const corto = { uri: 'content://corto', mimeType: 'video/mp4' };
+  const duraciones: Record<string, number> = {
+    'content://largo1': 18_000,
+    'content://largo2': 30_000,
+    'content://largo3': 9000,
+    'content://corto': 4000,
+  };
+
+  beforeEach(() => {
+    conversor.duracionDeVideo.mockImplementation(async (uri: string) => duraciones[uri] ?? null);
+  });
+
+  /** El tramo con el que se convirtió cada archivo, en el orden en que se convirtieron. */
+  const tramosConvertidos = () =>
+    conversor.convertirAnimado.mock.calls.map(([uri, , tramo]) => [uri, tramo ?? null]);
+
+  it('cada video largo pasa por su selector, en el orden de la tanda, y se convierte con su tramo junto con los demás', async () => {
     const biblioteca = await abrirBiblioteca(crearAlmacenEnMemoria());
-    conversor.duracionDeVideo.mockResolvedValue(18_000);
-    const elegirTramo = jest.fn();
+    const elegirTramo = jest
+      .fn()
+      .mockResolvedValueOnce({ tramo: { inicio: 2000, fin: 6000 } })
+      .mockResolvedValueOnce({ tramo: { inicio: 20_000, fin: 25_000 } });
 
-    await convertirTanda(biblioteca, [video, { uri: 'content://foto', mimeType: 'image/jpeg' }], elegirTramo);
+    const resultado = await convertirTanda(biblioteca, [largo1, foto, corto, largo2], elegirTramo);
 
-    expect(elegirTramo).not.toHaveBeenCalled();
-    expect(conversor.convertirAnimado).toHaveBeenCalledWith('content://video', expect.any(String), null);
+    expect(elegirTramo.mock.calls).toEqual([
+      [{ archivo: largo1, duracionVideo: 18_000, numero: 1, total: 2, enTanda: true }],
+      [{ archivo: largo2, duracionVideo: 30_000, numero: 2, total: 2, enTanda: true }],
+    ]);
+    expect(tramosConvertidos()).toEqual([
+      ['content://largo1', { inicioMs: 2000, finMs: 6000 }],
+      ['content://corto', null],
+      ['content://largo2', { inicioMs: 20_000, finMs: 25_000 }],
+    ]);
+    expect(conversor.convertirImagen).toHaveBeenCalledWith('content://foto', expect.any(String));
+    expect(resultado?.aviso).toBe('3 agregados a Mis stickers animados, 1 a Mis stickers');
+  });
+
+  it('«Usar automático para el resto» conserva el tramo del selector abierto y manda sin tramo a los videos largos que faltan', async () => {
+    const biblioteca = await abrirBiblioteca(crearAlmacenEnMemoria());
+    const elegirTramo = jest
+      .fn()
+      .mockResolvedValueOnce({ tramo: { inicio: 2000, fin: 6000 } })
+      .mockResolvedValueOnce({ tramo: { inicio: 20_000, fin: 25_000 }, restoAutomatico: true });
+
+    await convertirTanda(biblioteca, [largo1, largo2, foto, largo3], elegirTramo);
+
+    expect(elegirTramo).toHaveBeenCalledTimes(2);
+    expect(tramosConvertidos()).toEqual([
+      ['content://largo1', { inicioMs: 2000, finMs: 6000 }],
+      ['content://largo2', { inicioMs: 20_000, finMs: 25_000 }],
+      ['content://largo3', null],
+    ]);
+  });
+
+  it('volver en un selector del medio de la fila cancela la tanda entera: no convierte nada ni toca la biblioteca', async () => {
+    const almacen = crearAlmacenEnMemoria();
+    const escribir = jest.spyOn(almacen, 'escribir');
+    const biblioteca = await abrirBiblioteca(almacen);
+    escribir.mockClear();
+    const elegirTramo = jest
+      .fn()
+      .mockResolvedValueOnce({ tramo: { inicio: 2000, fin: 6000 } })
+      .mockResolvedValueOnce(null);
+
+    const resultado = await convertirTanda(biblioteca, [foto, largo1, largo2, largo3], elegirTramo);
+
+    expect(resultado).toBeNull();
+    expect(elegirTramo).toHaveBeenCalledTimes(2);
+    expect(conversor.convertirImagen).not.toHaveBeenCalled();
+    expect(conversor.convertirAnimado).not.toHaveBeenCalled();
+    expect(escribir).not.toHaveBeenCalled();
+  });
+
+  it('el aviso cuenta los tramos acortados de la tanda', async () => {
+    const biblioteca = await abrirBiblioteca(crearAlmacenEnMemoria());
+    // largo1 y largo3 no entran en 500 KB: el conversor los acorta a 3 s y 2 s.
+    const finales: Record<string, number> = { 'content://largo1': 3000, 'content://largo2': 5000, 'content://largo3': 2000 };
+    conversor.convertirAnimado.mockImplementation(async (origen, destino) => ({
+      tipo: 'listo' as const,
+      archivo: destino,
+      duracionMs: finales[origen],
+    }));
+    const quintos = { tramo: { inicio: 0, fin: 5000 } };
+
+    const resultado = await convertirTanda(biblioteca, [largo1, largo2, largo3], jest.fn().mockResolvedValue(quintos));
+
+    expect(resultado?.aviso).toBe('3 agregados a Mis stickers animados · 2 tramos se acortaron');
+    expect(resultado?.acortados).toBe(2);
   });
 });
