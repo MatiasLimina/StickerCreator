@@ -6,6 +6,7 @@ import {
   tramoInicial,
   ventanaDeRegla,
   type Tramo,
+  type Ventana,
 } from './tramo';
 
 const s = (segundos: number) => segundos * 1000;
@@ -43,6 +44,11 @@ describe('mover el tramo entero', () => {
   it('±0,5 s mueven inicio y fin juntos', () => {
     expect(mover(tramo(12, 15), s(0.5), s(40))).toEqual(tramo(12.5, 15.5));
     expect(mover(tramo(12, 15), s(-0.5), s(40))).toEqual(tramo(11.5, 14.5));
+  });
+
+  it('±0,5 s mueven medio segundo justo aunque el tramo haya frenado en un final que no cae en décimas', () => {
+    const enElFinal = mover(tramo(30, 35), s(20), s(37.25));
+    expect(mover(enElFinal, s(-0.5), s(37.25))).toEqual({ inicio: s(31.75), fin: s(36.75) });
   });
 });
 
@@ -94,7 +100,7 @@ describe('se puede mover hacia cada lado', () => {
 });
 
 describe('ventana de la regla ampliada', () => {
-  const contiene = (ventana: Tramo, t: Tramo) => ventana.inicio <= t.inicio && t.fin <= ventana.fin;
+  const contiene = (ventana: Ventana, t: Tramo) => ventana.inicio <= t.inicio && t.fin <= ventana.fin;
 
   it('en un video largo muestra 12 s desde el principio al abrir', () => {
     expect(ventanaDeRegla(tramoInicial(s(180)), s(180))).toEqual(tramo(0, 12));

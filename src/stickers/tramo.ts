@@ -10,6 +10,12 @@ export interface Tramo {
   fin: number;
 }
 
+/** La porción del video que se ve en la regla ampliada; a diferencia de un tramo, puede durar más de 5 s. */
+export interface Ventana {
+  inicio: number;
+  fin: number;
+}
+
 /** Duración mínima de un tramo: un sticker de menos no sirve. */
 export const DURACION_MINIMA = 1000;
 /** Duración máxima de un tramo: más no entra en un sticker de WhatsApp. */
@@ -29,14 +35,19 @@ export function tramoInicial(duracionVideo: number): Tramo {
   return { inicio: 0, fin: Math.min(DURACION_MAXIMA, duracionVideo) };
 }
 
-/** Mueve el tramo entero `delta` ms (arrastre o ±0,5 s), con la misma duración, sin salirse del video. */
+/**
+ * Mueve el tramo entero `delta` ms (±0,5 s, o un arrastre), con la misma
+ * duración, sin salirse del video. Al arrastrar, pasá el tramo del comienzo del
+ * gesto y el delta acumulado: el delta se redondea a décimas, así que los
+ * deltas chiquitos de cada cuadro no moverían nada.
+ */
 export function mover(tramo: Tramo, delta: number, duracionVideo: number): Tramo {
   const duracion = tramo.fin - tramo.inicio;
-  const inicio = acotar(redondear(tramo.inicio + delta), 0, duracionVideo - duracion);
+  const inicio = acotar(tramo.inicio + redondear(delta), 0, duracionVideo - duracion);
   return { inicio, fin: inicio + duracion };
 }
 
-/** Lleva el inicio a `inicio` (manija izquierda), sin pasar de 1 a 5 s ni de 0:00. */
+/** Lleva el inicio a `inicio` (manija izquierda; al arrastrar, partí del tramo del comienzo del gesto), sin pasar de 1 a 5 s ni de 0:00. */
 export function ajustarInicio(tramo: Tramo, inicio: number): Tramo {
   const minimo = Math.max(0, tramo.fin - DURACION_MAXIMA);
   return { inicio: acotar(redondear(inicio), minimo, tramo.fin - DURACION_MINIMA), fin: tramo.fin };
@@ -59,7 +70,7 @@ export function sePuedeMover(tramo: Tramo, duracionVideo: number): { atras: bool
  * tramo entra con 1 s de margen, y se corre lo justo cuando no, para que la
  * regla no salte con cada gesto. Sin `anterior`, arranca en 0:00.
  */
-export function ventanaDeRegla(tramo: Tramo, duracionVideo: number, anterior?: Tramo): Tramo {
+export function ventanaDeRegla(tramo: Tramo, duracionVideo: number, anterior?: Ventana): Ventana {
   const ancho = Math.min(ANCHO_DE_REGLA, duracionVideo);
   const ultimoInicio = duracionVideo - ancho;
   let inicio = acotar(anterior?.inicio ?? 0, 0, ultimoInicio);
