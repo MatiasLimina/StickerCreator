@@ -26,6 +26,8 @@ const DESTRUCTIVO = '#D92D20';
 const BORDE_CONTROL = '#D0D5DD';
 
 const LADO_VISTA_PREVIA = 312;
+/** Lo que ocupa la línea «Sin audio · Loop» debajo del cuadro, con su margen y el de la zona. */
+const DEBAJO_DEL_CUADRO = 36;
 /** Área táctil de cada manija, por fuera del tramo. */
 const MANIJA = 48;
 /** Lo que una manija se mete dentro del tramo, si el bloque es ancho. */
@@ -164,6 +166,7 @@ function BotonFino({
 /** El video encajado en un cuadrado, sin audio, en loop entre el inicio y el fin del tramo. */
 function VistaPrevia({ uri, tramo }: { uri: string; tramo: Tramo }) {
   const [posicion, setPosicion] = useState(tramo.inicio);
+  const [lado, setLado] = useState(LADO_VISTA_PREVIA);
   // El listener lee siempre el tramo actual sin volver a suscribirse.
   const tramoActual = useRef(tramo);
   tramoActual.current = tramo;
@@ -189,8 +192,15 @@ function VistaPrevia({ uri, tramo }: { uri: string; tramo: Tramo }) {
   }, [player, tramo.inicio, tramo.fin]);
 
   return (
-    <View style={styles.zonaVistaPrevia}>
-      <View style={styles.cuadro}>
+    // En una tanda, con «Usar automático para el resto», puede no haber alto
+    // para 312 dp: el cuadro se achica al espacio que queda, sin tapar nada.
+    <View
+      style={styles.zonaVistaPrevia}
+      onLayout={(e: LayoutChangeEvent) =>
+        setLado(Math.min(LADO_VISTA_PREVIA, Math.max(0, e.nativeEvent.layout.height - DEBAJO_DEL_CUADRO)))
+      }
+    >
+      <View style={[styles.cuadro, { width: lado, height: lado }]}>
         <Damero />
         <VideoView
           player={player}
@@ -201,7 +211,7 @@ function VistaPrevia({ uri, tramo }: { uri: string; tramo: Tramo }) {
           surfaceType="textureView"
         />
       </View>
-      <View style={styles.debajoDelCuadro}>
+      <View style={[styles.debajoDelCuadro, { width: lado }]}>
         <Text style={styles.meta}>🔇 Sin audio · Loop</Text>
         <Text style={styles.meta}>{tiempo(posicion, true)}</Text>
       </View>
@@ -437,15 +447,13 @@ const styles = StyleSheet.create({
 
   zonaVistaPrevia: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 6 },
   cuadro: {
-    width: LADO_VISTA_PREVIA,
-    height: LADO_VISTA_PREVIA,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: BORDE,
     overflow: 'hidden',
   },
   filaDamero: { flexDirection: 'row' },
-  debajoDelCuadro: { width: LADO_VISTA_PREVIA, marginTop: 6, flexDirection: 'row', justifyContent: 'space-between' },
+  debajoDelCuadro: { marginTop: 6, flexDirection: 'row', justifyContent: 'space-between' },
 
   tarjeta: { marginHorizontal: 16, padding: 12, borderRadius: 12, backgroundColor: SUPERFICIE, gap: 9 },
   lectura: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
