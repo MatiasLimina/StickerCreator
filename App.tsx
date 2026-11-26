@@ -5,15 +5,24 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { abrirBiblioteca, type Biblioteca, type VistaPaquete } from './src/paquetes/biblioteca';
 import { crearAlmacenEnArchivo } from './src/paquetes/almacen-en-archivo';
 import { PantallaPaquetes } from './src/pantalla/PantallaPaquetes';
+import { SelectorDeTramo } from './src/pantalla/SelectorDeTramo';
 import { archivoDeSticker, eliminarArchivoDeSticker } from './src/stickers/carpeta';
 import Compartir from './modules/compartir';
 import { crearStickerDesdeGaleria } from './src/stickers/crear-desde-galeria';
-import { convertirTanda, type ResultadoTanda } from './src/stickers/tanda';
+import { convertirTanda, type ArchivoDeOrigen, type ElegirTramo, type ResultadoTanda } from './src/stickers/tanda';
+import type { Tramo } from './src/stickers/tramo';
 import { agregarAWhatsApp, consultarAgregados, estaAgregado } from './src/whatsapp/agregar';
 
 const mensajeDe = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const uriDeSticker = (nombre: string) => archivoDeSticker(nombre).uri;
 const SIN_SELECCION: ReadonlySet<string> = new Set();
+
+/** Un selector de tramo abierto: la tanda espera a que `responder` le diga el tramo (o null si el usuario volvió). */
+interface PedidoDeTramo {
+  archivo: ArchivoDeOrigen;
+  duracionVideo: number;
+  responder: (tramo: Tramo | null) => void;
+}
 
 /** La selección con `archivo` marcado si no lo estaba, o desmarcado si lo estaba. */
 function alternado(seleccion: ReadonlySet<string>, archivo: string): ReadonlySet<string> {
@@ -40,6 +49,24 @@ function Pantalla() {
   // Stickers marcados para borrar, como en una galería: con alguno marcado, la pantalla está en modo selección.
   const [seleccion, setSeleccion] = useState<ReadonlySet<string>>(SIN_SELECCION);
   const seleccionando = seleccion.size > 0;
+  const [pedidoDeTramo, setPedidoDeTramo] = useState<PedidoDeTramo | null>(null);
+
+  // La tanda (que corre en la cola de cambios) se queda esperando acá mientras
+  // el selector está abierto: lo que llegue por Compartir espera su turno.
+  const elegirTramo = useCallback<ElegirTramo>(
+    (archivo, duracionVideo) =>
+      new Promise((resolver) =>
+        setPedidoDeTramo({
+          archivo,
+          duracionVideo,
+          responder: (tramo) => {
+            setPedidoDeTramo(null);
+            resolver(tramo);
+          },
+        }),
+      ),
+    [],
+  );
 
   useEffect(() => {
     abrirBiblioteca(crearAlmacenEnArchivo(), eliminarArchivoDeSticker)
@@ -208,7 +235,7 @@ function Pantalla() {
     const recibir = () => {
       Compartir.leerCompartidos()
         .then((archivos) => {
-          if (archivos.length > 0) encolar(() => convertirTanda(biblioteca, archivos), true);
+          if (archivos.length > 0) encolar(() => convertirTanda(biblioteca, archivos, elegirTramo), true);
         })
         .catch((e: unknown) => setAviso(`No se pudo leer lo compartido: ${mensajeDe(e)}`));
     };
@@ -221,11 +248,11 @@ function Pantalla() {
       compartido.remove();
       alFrente.remove();
     };
-    // Solo depende de la biblioteca: encolar usa la cola (una ref) y setters estables.
+    // Solo depende de la biblioteca: encolar usa la cola (una ref), y setters y elegirTramo son estables.
   }, [biblioteca]);
 
   function elegirDeGaleria() {
-    if (biblioteca) encolar(() => crearStickerDesdeGaleria(biblioteca));
+    if (biblioteca) encolar(() => crearStickerDesdeGaleria(biblioteca, elegirTramo));
   }
 
   return (
@@ -262,6 +289,14 @@ function Pantalla() {
         >
           <Text style={styles.textoBoton}>{convirtiendo ? 'Convirtiendo…' : 'Elegir de la galería'}</Text>
         </Pressable>
+      )}
+      {pedidoDeTramo && (
+        <SelectorDeTramo
+          uri={pedidoDeTramo.archivo.uri}
+          duracionVideo={pedidoDeTramo.duracionVideo}
+          onCrear={pedidoDeTramo.responder}
+          onVolver={() => pedidoDeTramo.responder(null)}
+        />
       )}
       <StatusBar style="auto" />
     </SafeAreaView>

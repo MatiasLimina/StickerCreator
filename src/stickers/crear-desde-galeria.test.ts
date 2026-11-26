@@ -14,7 +14,7 @@ jest.mock('expo-file-system', () => ({
 }));
 jest.mock('../../modules/conversor', () => ({
   __esModule: true,
-  default: { convertirImagen: jest.fn(), convertirAnimado: jest.fn() },
+  default: { convertirImagen: jest.fn(), convertirAnimado: jest.fn(), duracionDeVideo: jest.fn() },
 }));
 
 const elegir = jest.mocked(launchImageLibraryAsync);
@@ -54,6 +54,21 @@ describe('crear un sticker desde la galería', () => {
 
     expect(conversor.convertirAnimado).toHaveBeenCalledWith('content://video', expect.any(String), null);
     expect(resultado?.paquetes.map((p) => p.nombre)).toEqual(['Mis stickers animados']);
+  });
+
+  it('un video largo pasa por el selector y se convierte con el tramo elegido', async () => {
+    const biblioteca = await abrirBiblioteca(crearAlmacenEnMemoria());
+    eligio({ uri: 'content://video', type: 'video', mimeType: 'video/mp4' });
+    conversor.duracionDeVideo.mockResolvedValue(40_000);
+    const elegirTramo = jest.fn().mockResolvedValue({ inicio: 30_000, fin: 34_000 });
+
+    await crearStickerDesdeGaleria(biblioteca, elegirTramo);
+
+    expect(elegirTramo).toHaveBeenCalledWith({ uri: 'content://video', mimeType: 'video/mp4' }, 40_000);
+    expect(conversor.convertirAnimado).toHaveBeenCalledWith('content://video', expect.any(String), {
+      inicioMs: 30_000,
+      finMs: 34_000,
+    });
   });
 
   it('una foto sigue yendo a "Mis stickers"', async () => {
