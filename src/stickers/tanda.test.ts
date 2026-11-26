@@ -160,6 +160,7 @@ describe('elegir el tramo de un video suelto antes de convertirlo', () => {
     const resultado = await convertirTanda(biblioteca, [video], jest.fn().mockResolvedValue({ inicio: 10_000, fin: 15_000 }));
 
     expect(resultado?.aviso).toBe('Agregado a Mis stickers animados · 1 tramo se acortó a 3 s');
+    expect(resultado?.acortados).toBe(1);
   });
 
   it('si el conversor respetó el tramo, el aviso no habla de acortes', async () => {
@@ -174,6 +175,7 @@ describe('elegir el tramo de un video suelto antes de convertirlo', () => {
     const resultado = await convertirTanda(biblioteca, [video], jest.fn().mockResolvedValue(tramoElegido));
 
     expect(resultado?.aviso).toBe('Agregado a Mis stickers animados');
+    expect(resultado?.acortados).toBe(0);
   });
 
   it('en una tanda de varios archivos, los videos largos siguen con el tramo automático (los selectores en fila son de #27)', async () => {

@@ -89,7 +89,7 @@ describe('crear un sticker desde la galería', () => {
 
     const resultado = await crearStickerDesdeGaleria(biblioteca);
 
-    expect(resultado).toEqual({ aviso: 'No se pudo crear el sticker: no entra en 500 KB', paquetes: [] });
+    expect(resultado).toEqual({ aviso: 'No se pudo crear el sticker: no entra en 500 KB', paquetes: [], acortados: 0 });
     expect(biblioteca.paquetes().every((p) => p.cantidad === 0)).toBe(true);
   });
 

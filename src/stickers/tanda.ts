@@ -76,6 +76,8 @@ interface PaqueteTocado {
 export interface ResultadoTanda {
   aviso: string;
   paquetes: VistaPaquete[];
+  /** Cuántos tramos elegidos acortó el conversor: el aviso se muestra como información. */
+  acortados: number;
 }
 
 /**
@@ -116,7 +118,7 @@ export async function convertirTanda(
   }
   const tocados = [...porPaquete.values()];
   const aviso = [resumir(tocados, descartes), resumirAcortados(acortados)].filter(Boolean).join(' · ');
-  return { aviso, paquetes: tocados.map((t) => t.paquete) };
+  return { aviso, paquetes: tocados.map((t) => t.paquete), acortados: acortados.length };
 }
 
 /** "1 tramo se acortó a 3 s"; con varios a distintas duraciones alcanza con contarlos. Vacío si no se acortó ninguno. */

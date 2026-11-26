@@ -237,22 +237,27 @@ function Regla({
   // El responder se crea una vez; lee la geometría y el tramo de esta ref.
   const actual = useRef({ tramo, x, msPorPunto, duracionVideo, onCambiar });
   actual.current = { tramo, x, msPorPunto, duracionVideo, onCambiar };
-  const gesto = useRef<{ agarre: Agarre; desde: Tramo } | null>(null);
+  /** El gesto en curso: qué agarró, desde qué tramo y con qué escala (fija durante el gesto). */
+  const gesto = useRef<{ agarre: Agarre; desde: Tramo; msPorPunto: number } | null>(null);
   const [agarrando, setAgarrando] = useState<Agarre | null>(null);
+  const soltar = () => {
+    gesto.current = null;
+    setAgarrando(null);
+  };
 
   const responder = useMemo(
     () =>
       PanResponder.create({
         onStartShouldSetPanResponder: (evento) => {
           const agarre = agarreEn(evento.nativeEvent.locationX, actual.current);
-          gesto.current = agarre ? { agarre, desde: actual.current.tramo } : null;
+          gesto.current = agarre ? { agarre, desde: actual.current.tramo, msPorPunto: actual.current.msPorPunto } : null;
           return agarre !== null;
         },
         onPanResponderGrant: () => setAgarrando(gesto.current?.agarre ?? null),
         onPanResponderMove: (_evento, { dx }) => {
           if (!gesto.current) return;
-          const { msPorPunto, duracionVideo, onCambiar } = actual.current;
-          const { agarre, desde } = gesto.current;
+          const { duracionVideo, onCambiar } = actual.current;
+          const { agarre, desde, msPorPunto } = gesto.current;
           const delta = dx * msPorPunto;
           onCambiar(
             agarre === 'tramo'
@@ -262,14 +267,8 @@ function Regla({
                 : ajustarFin(desde, desde.fin + delta, duracionVideo),
           );
         },
-        onPanResponderRelease: () => {
-          gesto.current = null;
-          setAgarrando(null);
-        },
-        onPanResponderTerminate: () => {
-          gesto.current = null;
-          setAgarrando(null);
-        },
+        onPanResponderRelease: soltar,
+        onPanResponderTerminate: soltar,
       }),
     [],
   );

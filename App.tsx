@@ -44,6 +44,10 @@ function Pantalla() {
   const [paquetes, setPaquetes] = useState<VistaPaquete[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
+  // El aviso de una tanda con tramos acortados lleva el ícono de información
+  // (acortar es un ajuste, no un error). Se guarda el texto: si otro aviso lo
+  // reemplaza, el ícono se va solo.
+  const [avisoInformativo, setAvisoInformativo] = useState<string | null>(null);
   const [convirtiendo, setConvirtiendo] = useState(false);
   const [agregados, setAgregados] = useState<Record<string, boolean>>({});
   // Stickers marcados para borrar, como en una galería: con alguno marcado, la pantalla está en modo selección.
@@ -200,6 +204,7 @@ function Pantalla() {
       const resultado = await tanda();
       if (resultado) {
         resumen = resultado.aviso;
+        setAvisoInformativo(resultado.acortados > 0 ? resumen : null);
         setAviso(resumen);
         setPaquetes(biblioteca.paquetes());
         // WhatsApp no relee solo un paquete que ya tiene: le pedimos que lo
@@ -271,7 +276,12 @@ function Pantalla() {
           onTocar={tocarSticker}
         />
       )}
-      {aviso && <Text style={styles.aviso}>{aviso}</Text>}
+      {aviso && (
+        <Text style={styles.aviso}>
+          {aviso === avisoInformativo && <Text style={styles.iconoInformacion}>ⓘ </Text>}
+          {aviso}
+        </Text>
+      )}
       {seleccionando ? (
         <View style={styles.barraSeleccion}>
           <Pressable style={[styles.boton, styles.botonCancelar]} onPress={() => setSeleccion(SIN_SELECCION)}>
@@ -307,6 +317,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   error: { padding: 16, color: '#B42318' },
   aviso: { paddingHorizontal: 16, paddingBottom: 8, color: '#344054' },
+  iconoInformacion: { color: '#1570EF', fontWeight: '700' },
   boton: { margin: 16, padding: 16, borderRadius: 12, backgroundColor: '#1570EF', alignItems: 'center' },
   botonInactivo: { opacity: 0.5 },
   textoBoton: { color: '#fff', fontSize: 16, fontWeight: '600' },
