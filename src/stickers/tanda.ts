@@ -30,7 +30,7 @@ async function convertir(
   try {
     const resultado =
       tipo === 'animado'
-        ? await Conversor.convertirAnimado(archivo.uri, destino)
+        ? await Conversor.convertirAnimado(archivo.uri, destino, null)
         : await Conversor.convertirImagen(archivo.uri, destino);
     if (resultado.tipo === 'descarte') return { descarte: resultado.motivo };
   } catch (e) {

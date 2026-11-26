@@ -40,7 +40,7 @@ describe('crear un sticker desde la galería', () => {
 
     const resultado = await crearStickerDesdeGaleria(biblioteca);
 
-    expect(conversor.convertirAnimado).toHaveBeenCalledWith('content://gif', expect.stringMatching(/\.webp$/));
+    expect(conversor.convertirAnimado).toHaveBeenCalledWith('content://gif', expect.stringMatching(/\.webp$/), null);
     expect(resultado?.aviso).toBe('Agregado a Mis stickers animados');
     expect(biblioteca.paquetes().find((p) => p.tipo === 'animado')?.cantidad).toBe(1);
     expect(biblioteca.paquetes().find((p) => p.tipo === 'estatico')?.cantidad).toBe(0);
@@ -52,7 +52,7 @@ describe('crear un sticker desde la galería', () => {
 
     const resultado = await crearStickerDesdeGaleria(biblioteca);
 
-    expect(conversor.convertirAnimado).toHaveBeenCalledWith('content://video', expect.any(String));
+    expect(conversor.convertirAnimado).toHaveBeenCalledWith('content://video', expect.any(String), null);
     expect(resultado?.paquetes.map((p) => p.nombre)).toEqual(['Mis stickers animados']);
   });
 
