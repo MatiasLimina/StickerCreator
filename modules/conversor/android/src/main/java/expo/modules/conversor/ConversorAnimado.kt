@@ -191,7 +191,7 @@ class ConversorAnimado(private val contexto: Context) {
         throw Descartado(NO_SOPORTADO)
       }
       val duracion = lector.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()
-      if (lector.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_VIDEO) != "yes" || duracion == null) {
+      if (lector.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_VIDEO) != "yes" || duracion == null || duracion <= 0) {
         throw Descartado(NO_SOPORTADO)
       }
       // Se lee hasta el primer cuadro que falte (la duración declarada puede
