@@ -23,6 +23,7 @@ const ACENTO = '#1570EF';
 const SELECCION = '#D1E0FF';
 const BORDE = '#E4E7EC';
 const DESTRUCTIVO = '#D92D20';
+const BORDE_CONTROL = '#D0D5DD';
 
 const LADO_VISTA_PREVIA = 312;
 /** Área táctil de cada manija, por fuera del tramo. */
@@ -515,7 +516,7 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#D0D5DD',
+    borderColor: BORDE_CONTROL,
     backgroundColor: FONDO,
     alignItems: 'center',
     justifyContent: 'center',
@@ -529,7 +530,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#D0D5DD',
+    borderColor: BORDE_CONTROL,
     backgroundColor: FONDO,
     alignItems: 'center',
     justifyContent: 'center',

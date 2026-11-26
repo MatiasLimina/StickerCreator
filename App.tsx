@@ -56,17 +56,17 @@ function Pantalla() {
   // Stickers marcados para borrar, como en una galería: con alguno marcado, la pantalla está en modo selección.
   const [seleccion, setSeleccion] = useState<ReadonlySet<string>>(SIN_SELECCION);
   const seleccionando = seleccion.size > 0;
-  const [pedidoDeTramo, setPedidoDeTramo] = useState<SelectorAbierto | null>(null);
+  const [selectorAbierto, setSelectorAbierto] = useState<SelectorAbierto | null>(null);
 
   // La tanda (que corre en la cola de cambios) se queda esperando acá mientras
   // el selector está abierto: lo que llegue por Compartir espera su turno.
   const elegirTramo = useCallback<ElegirTramo>(
     (pedido) =>
       new Promise((resolver) =>
-        setPedidoDeTramo({
+        setSelectorAbierto({
           ...pedido,
           responder: (eleccion) => {
-            setPedidoDeTramo(null);
+            setSelectorAbierto(null);
             resolver(eleccion);
           },
         }),
@@ -302,17 +302,17 @@ function Pantalla() {
           <Text style={styles.textoBoton}>{convirtiendo ? 'Convirtiendo…' : 'Elegir de la galería'}</Text>
         </Pressable>
       )}
-      {pedidoDeTramo && (
+      {selectorAbierto && (
         <SelectorDeTramo
           // Una instancia por video de la fila: cada selector arranca con su propio tramo inicial.
-          key={pedidoDeTramo.numero}
-          uri={pedidoDeTramo.archivo.uri}
-          duracionVideo={pedidoDeTramo.duracionVideo}
-          numero={pedidoDeTramo.numero}
-          total={pedidoDeTramo.total}
-          enTanda={pedidoDeTramo.enTanda}
-          onElegir={(tramo, restoAutomatico) => pedidoDeTramo.responder({ tramo, restoAutomatico })}
-          onVolver={() => pedidoDeTramo.responder(null)}
+          key={selectorAbierto.numero}
+          uri={selectorAbierto.archivo.uri}
+          duracionVideo={selectorAbierto.duracionVideo}
+          numero={selectorAbierto.numero}
+          total={selectorAbierto.total}
+          enTanda={selectorAbierto.enTanda}
+          onElegir={(tramo, restoAutomatico) => selectorAbierto.responder({ tramo, restoAutomatico })}
+          onVolver={() => selectorAbierto.responder(null)}
         />
       )}
       <StatusBar style="auto" />
