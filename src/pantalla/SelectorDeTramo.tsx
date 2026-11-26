@@ -22,6 +22,7 @@ const TEXTO_SUAVE = '#475467';
 const ACENTO = '#1570EF';
 const SELECCION = '#D1E0FF';
 const BORDE = '#E4E7EC';
+const DESTRUCTIVO = '#D92D20';
 
 const LADO_VISTA_PREVIA = 312;
 /** Área táctil de cada manija, por fuera del tramo. */
@@ -47,19 +48,26 @@ interface Props {
   /** El video del que se elige el tramo. */
   uri: string;
   duracionVideo: number;
-  onCrear: (tramo: Tramo) => void;
-  /** Volver (flecha o atrás de Android): no se crea nada. */
+  /** Qué selector de la fila es («2 de 3»); con uno solo no se muestra. */
+  numero: number;
+  total: number;
+  /** Si la tanda trae otros archivos: volver la cancela entera, y la pantalla lo avisa. */
+  enTanda: boolean;
+  /** «Crear» o «Siguiente»; con `restoAutomatico`, «Usar automático para el resto». */
+  onElegir: (tramo: Tramo, restoAutomatico: boolean) => void;
+  /** Volver (flecha o atrás de Android): no se crea nada (en una tanda, nada de la tanda). */
   onVolver: () => void;
 }
 
 /**
- * El selector de tramo de un video suelto, superpuesto a la pantalla de
+ * El selector de tramo de un video, superpuesto a la pantalla de
  * paquetes. Las reglas (topes, bordes, ventana de la regla) viven en
  * `stickers/tramo`: acá solo se dibuja y se traducen los gestos.
  */
-export function SelectorDeTramo({ uri, duracionVideo, onCrear, onVolver }: Props) {
+export function SelectorDeTramo({ uri, duracionVideo, numero, total, enTanda, onElegir, onVolver }: Props) {
   const [tramo, setTramo] = useState(() => tramoInicial(duracionVideo));
   const puede = sePuedeMover(tramo, duracionVideo);
+  const quedanMas = numero < total;
 
   return (
     <Modal visible animationType="slide" onRequestClose={onVolver} statusBarTranslucent navigationBarTranslucent>
@@ -69,12 +77,21 @@ export function SelectorDeTramo({ uri, duracionVideo, onCrear, onVolver }: Props
             style={styles.botonVolver}
             onPress={onVolver}
             accessibilityRole="button"
-            accessibilityLabel="Volver sin crear el sticker"
+            accessibilityLabel={enTanda ? 'Volver y cancelar la tanda' : 'Volver sin crear el sticker'}
           >
             <Text style={styles.flecha}>←</Text>
           </Pressable>
-          <Text style={styles.titulo}>Selector de tramo</Text>
-          <Text style={styles.meta}>Video {tiempo(duracionVideo)}</Text>
+          <View style={styles.pilaTitulo}>
+            <Text style={styles.titulo}>Selector de tramo</Text>
+            {enTanda && <Text style={styles.avisoTanda}>Volver cancela la tanda</Text>}
+          </View>
+          {total > 1 ? (
+            <Text style={styles.posicion}>
+              {numero} de {total}
+            </Text>
+          ) : (
+            <Text style={styles.meta}>Video {tiempo(duracionVideo)}</Text>
+          )}
         </View>
 
         <VistaPrevia uri={uri} tramo={tramo} />
@@ -103,9 +120,16 @@ export function SelectorDeTramo({ uri, duracionVideo, onCrear, onVolver }: Props
           </View>
         </View>
 
-        <Pressable style={styles.crear} onPress={() => onCrear(tramo)} accessibilityRole="button">
-          <Text style={styles.textoCrear}>Crear</Text>
-        </Pressable>
+        <View style={styles.zonaPulgar}>
+          {quedanMas && (
+            <Pressable style={styles.secundario} onPress={() => onElegir(tramo, true)} accessibilityRole="button">
+              <Text style={styles.textoSecundario}>Usar automático para el resto</Text>
+            </Pressable>
+          )}
+          <Pressable style={styles.crear} onPress={() => onElegir(tramo, false)} accessibilityRole="button">
+            <Text style={styles.textoCrear}>{quedanMas ? 'Siguiente' : 'Crear'}</Text>
+          </Pressable>
+        </View>
       </SafeAreaView>
     </Modal>
   );
@@ -394,7 +418,19 @@ const styles = StyleSheet.create({
   },
   botonVolver: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
   flecha: { fontSize: 22, color: TEXTO },
-  titulo: { flex: 1, marginLeft: 4, fontSize: 18, fontWeight: '600', color: TEXTO },
+  pilaTitulo: { flex: 1, marginLeft: 4, gap: 2 },
+  titulo: { fontSize: 18, fontWeight: '600', color: TEXTO },
+  avisoTanda: { fontSize: 12, fontWeight: '600', color: DESTRUCTIVO },
+  posicion: {
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    backgroundColor: SELECCION,
+    fontSize: 13,
+    fontWeight: '600',
+    color: TEXTO,
+    ...NUMEROS,
+  },
   meta: { fontSize: 12, fontWeight: '500', color: TEXTO_SUAVE, ...NUMEROS },
 
   zonaVistaPrevia: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 6 },
@@ -487,6 +523,18 @@ const styles = StyleSheet.create({
   botonFinoInactivo: { opacity: 0.38 },
   textoFino: { fontSize: 14, fontWeight: '600', color: TEXTO, ...NUMEROS },
 
-  crear: { margin: 16, padding: 16, borderRadius: 12, backgroundColor: ACENTO, alignItems: 'center' },
+  zonaPulgar: { padding: 16, gap: 8 },
+  secundario: {
+    minHeight: 48,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#D0D5DD',
+    backgroundColor: FONDO,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  textoSecundario: { fontSize: 14, fontWeight: '600', color: TEXTO },
+  crear: { padding: 16, borderRadius: 12, backgroundColor: ACENTO, alignItems: 'center' },
   textoCrear: { color: FONDO, fontSize: 16, fontWeight: '600' },
 });

@@ -60,11 +60,11 @@ describe('crear un sticker desde la galería', () => {
     const biblioteca = await abrirBiblioteca(crearAlmacenEnMemoria());
     eligio({ uri: 'content://video', type: 'video', mimeType: 'video/mp4' });
     conversor.duracionDeVideo.mockResolvedValue(40_000);
-    const elegirTramo = jest.fn().mockResolvedValue({ inicio: 30_000, fin: 34_000 });
+    const elegirTramo = jest.fn().mockResolvedValue({ tramo: { inicio: 30_000, fin: 34_000 } });
 
     await crearStickerDesdeGaleria(biblioteca, elegirTramo);
 
-    expect(elegirTramo).toHaveBeenCalledWith({ uri: 'content://video', mimeType: 'video/mp4' }, 40_000);
+    expect(elegirTramo).toHaveBeenCalledWith(expect.objectContaining({ archivo: { uri: 'content://video', mimeType: 'video/mp4' }, duracionVideo: 40_000 }));
     expect(conversor.convertirAnimado).toHaveBeenCalledWith('content://video', expect.any(String), {
       inicioMs: 30_000,
       finMs: 34_000,

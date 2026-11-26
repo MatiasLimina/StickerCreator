@@ -20,11 +20,25 @@ function tipoDeSticker({ mimeType }: ArchivoDeOrigen): TipoSticker | null {
   return null;
 }
 
-/**
- * Muestra el selector de tramo de un video y espera la elección: el tramo
- * elegido, o null si el usuario volvió sin crear nada.
- */
-export type ElegirTramo = (archivo: ArchivoDeOrigen, duracionVideo: number) => Promise<Tramo | null>;
+/** Lo que necesita un selector de tramo para abrirse: el video, su duración y en qué lugar de la fila va. */
+export interface PedidoDeTramo {
+  archivo: ArchivoDeOrigen;
+  duracionVideo: number;
+  /** Qué selector es («2 de 3»): cuenta solo los videos que piden selector. */
+  numero: number;
+  total: number;
+  /** Si la tanda trae otros archivos: volver la cancela entera, no solo este video. */
+  enTanda: boolean;
+}
+
+/** El tramo elegido; con `restoAutomatico`, los videos largos que faltan van sin selector y con el tramo automático. */
+export interface EleccionDeTramo {
+  tramo: Tramo;
+  restoAutomatico?: boolean;
+}
+
+/** Muestra un selector de tramo y espera la elección, o null si el usuario volvió (cancela la tanda). */
+export type ElegirTramo = (pedido: PedidoDeTramo) => Promise<EleccionDeTramo | null>;
 
 /** Un sticker creado; `acortadoA` es la duración final en ms si el conversor acortó el tramo elegido. */
 interface Creado {
@@ -81,32 +95,49 @@ export interface ResultadoTanda {
 }
 
 /**
+ * Recorre los selectores en fila, antes de convertir nada: el tramo de cada
+ * archivo (null = automático), o null si el usuario volvió en algún selector.
+ */
+async function elegirTramos(archivos: ArchivoDeOrigen[], elegirTramo: ElegirTramo): Promise<(Tramo | null)[] | null> {
+  // Todas las duraciones primero: el «2 de 3» cuenta solo los videos que piden selector.
+  const duraciones: (number | null)[] = [];
+  for (const archivo of archivos) duraciones.push(await duracionSiPideSelector(archivo));
+  const total = duraciones.filter((d) => d !== null).length;
+  const tramos: (Tramo | null)[] = archivos.map(() => null);
+  let numero = 0;
+  for (const [i, archivo] of archivos.entries()) {
+    const duracionVideo = duraciones[i];
+    if (duracionVideo === null) continue;
+    numero++;
+    const eleccion = await elegirTramo({ archivo, duracionVideo, numero, total, enTanda: archivos.length > 1 });
+    if (!eleccion) return null;
+    tramos[i] = eleccion.tramo;
+    if (eleccion.restoAutomatico) break;
+  }
+  return tramos;
+}
+
+/**
  * Convierte cada archivo de origen, de a uno (para no tener varios videos en
  * memoria a la vez), y lo guarda en su paquete. Un archivo que falla no frena
  * a los demás.
  *
- * Con `elegirTramo`, un video suelto de más de 5 s pasa antes por el selector
- * de tramo; si el usuario vuelve, la tanda termina en null sin crear nada. En
- * una tanda de varios archivos los videos usan, por ahora, el tramo automático.
+ * Con `elegirTramo`, cada video de más de 5 s pasa antes por su selector de
+ * tramo, en fila y antes de convertir nada; si el usuario vuelve en cualquiera,
+ * la tanda termina en null sin crear nada.
  */
 export async function convertirTanda(
   biblioteca: Biblioteca,
   archivos: ArchivoDeOrigen[],
   elegirTramo?: ElegirTramo,
 ): Promise<ResultadoTanda | null> {
-  let tramo: Tramo | null = null;
-  if (elegirTramo && archivos.length === 1) {
-    const duracion = await duracionSiPideSelector(archivos[0]);
-    if (duracion !== null) {
-      tramo = await elegirTramo(archivos[0], duracion);
-      if (!tramo) return null;
-    }
-  }
+  const tramos = elegirTramo ? await elegirTramos(archivos, elegirTramo) : archivos.map(() => null);
+  if (!tramos) return null;
   const porPaquete = new Map<string, PaqueteTocado>();
   const descartes: string[] = [];
   const acortados: number[] = [];
-  for (const archivo of archivos) {
-    const convertido = await convertir(archivo, tramo);
+  for (const [i, archivo] of archivos.entries()) {
+    const convertido = await convertir(archivo, tramos[i]);
     if ('descarte' in convertido) {
       descartes.push(convertido.descarte);
       continue;
