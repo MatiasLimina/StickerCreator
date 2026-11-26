@@ -124,16 +124,41 @@ class ConversorAnimadoTest {
 
   @Test
   fun conTramoLosCuadrosSalenDelInicioElegido() {
-    val resultado = conversor.convertir(
+    // El recuadro cambia de rojo a azul a los 5 s: medio segundo antes sigue
+    // rojo y un segundo después ya es azul.
+    val antes = conversor.convertir(
       muestra("video-colores.mp4"),
-      File(carpeta, "con-tramo.webp"),
-      TramoElegido(inicioMs = 6000, finMs = 8000),
+      File(carpeta, "tramo-antes.webp"),
+      TramoElegido(inicioMs = 4500, finMs = 6500),
+    )
+    val despues = conversor.convertir(
+      muestra("video-colores.mp4"),
+      File(carpeta, "tramo-despues.webp"),
+      TramoElegido(inicioMs = 6000, finMs = 8500),
     )
 
-    val webp = stickerAnimado(resultado)
-    assertEquals("azul", colorDelRecuadro((resultado as Resultado.Listo).archivo))
-    assertEquals(2000L, resultado.duracionMs)
-    assertEquals(2000.0, webp.duraciones.sum().toDouble(), 150.0)
+    stickerAnimado(antes)
+    val webp = stickerAnimado(despues)
+    assertEquals("rojo", colorDelRecuadro((antes as Resultado.Listo).archivo))
+    assertEquals("azul", colorDelRecuadro((despues as Resultado.Listo).archivo))
+    // Sin acortar, informa la duración pedida.
+    assertEquals(2000L, antes.duracionMs)
+    assertEquals(2500L, despues.duracionMs)
+    assertEquals(2500.0, webp.duraciones.sum().toDouble(), 150.0)
+  }
+
+  @Test
+  fun unVideoQueTerminaAntesDeLoDeclaradoNoSeInformaComoAcortado() {
+    // El tramo llega justo hasta el final: aunque el último cuadro falte, no
+    // es un acorte por peso.
+    val resultado = conversor.convertir(
+      muestra("video-colores.mp4"),
+      File(carpeta, "hasta-el-final.webp"),
+      TramoElegido(inicioMs = 6500, finMs = 10000),
+    )
+
+    stickerAnimado(resultado)
+    assertEquals(3500L, (resultado as Resultado.Listo).duracionMs)
   }
 
   @Test

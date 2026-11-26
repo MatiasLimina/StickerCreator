@@ -43,8 +43,13 @@ private const val NO_SOPORTADO = "El archivo no es un GIF o video soportado"
 /** El tramo que eligió el usuario en un video, en ms desde el principio. */
 data class TramoElegido(val inicioMs: Long, val finMs: Long)
 
-/** El tramo leído del archivo de origen, ya encajado en 512×512. */
-private class Tramo(val cuadros: List<Bitmap>, val duracionMs: Long)
+/**
+ * El tramo leído del archivo de origen, ya encajado en 512×512. `duracionMs`
+ * sale de los cuadros leídos; `pedidoMs` es lo que se pidió leer, que es lo que
+ * se informa si no hubo que acortar (los cuadros redondean y un video puede
+ * declarar más duración que la que tiene, y eso no es acortar).
+ */
+private class Tramo(val cuadros: List<Bitmap>, val duracionMs: Long, val pedidoMs: Long)
 
 private class Descartado(val motivo: String) : Exception(motivo)
 
@@ -72,7 +77,7 @@ class ConversorAnimado(private val contexto: Context) {
         // estático, y WhatsApp rechaza el paquete animado que lo contenga.
         if (!esAnimado(bytes)) return Resultado.Descarte("El archivo no tiene movimiento")
         return when (val guardado = guardar(bytes, destino)) {
-          is Resultado.Listo -> guardado.copy(duracionMs = duracionMs)
+          is Resultado.Listo -> guardado.copy(duracionMs = if (duracionMs == tramo.duracionMs) tramo.pedidoMs else duracionMs)
           else -> guardado
         }
       }
@@ -130,7 +135,7 @@ class ConversorAnimado(private val contexto: Context) {
       lector.setDataSource(contexto, origen)
       if (lector.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_VIDEO) != "yes") return null
       return lector.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()?.takeIf { it > 0 }
-    } catch (e: RuntimeException) {
+    } catch (e: Exception) {
       return null
     } finally {
       lector.release()
@@ -171,7 +176,7 @@ class ConversorAnimado(private val contexto: Context) {
         gif.draw(canvas, 0f, 0f)
         encajar(lienzo, LADO_STICKER)
       }
-      return Tramo(cuadros, duracionMs)
+      return Tramo(cuadros, duracionMs, duracionMs)
     } finally {
       lienzo.recycle()
     }
@@ -203,7 +208,7 @@ class ConversorAnimado(private val contexto: Context) {
         cuadros.forEach(Bitmap::recycle)
         throw Descartado("El video es demasiado corto")
       }
-      return Tramo(cuadros, cuadros.size * 1000L / FPS_LECTURA)
+      return Tramo(cuadros, cuadros.size * 1000L / FPS_LECTURA, largoMs)
     } finally {
       lector.release()
     }
