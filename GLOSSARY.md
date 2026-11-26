@@ -23,8 +23,12 @@ Paquete que solo contiene stickers estáticos, generados a partir de imágenes.
 Paquete que solo contiene stickers animados, generados a partir de GIFs o videos. WhatsApp no permite mezclarlo con estáticos.
 
 **Tramo**:
-La porción de un GIF o video que se convierte en sticker animado; por defecto, los primeros segundos.
+La porción de un GIF o video, de hasta 5 s, que se convierte en sticker animado. Va de un inicio a un fin que el usuario puede elegir en un video; si no los elige, o si es un GIF, son los primeros 5 s.
 _Avoid_: Clip, recorte, fragmento
+
+**Selector de tramo**:
+El paso, antes de convertir un video de más de 5 s, en el que el usuario ve el tramo en loop y elige su inicio y su fin.
+_Avoid_: Editor, recortador, trimmer
 
 **Tanda**:
 Los archivos de origen que llegan juntos, compartidos o elegidos de la galería en un solo gesto. Cada uno se convierte por separado; la tanda termina con un aviso de una línea y una sola actualización a WhatsApp por paquete.

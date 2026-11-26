@@ -1,0 +1,1839 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StickerCreator — Selector de tramo (Dirección 3: Regla temporal graduada)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* Paleta exclusiva del brief (StickerCreator) */
+    :root {
+      --bg: #FFFFFF;
+      --surface: #F2F4F7;
+      --text: #344054;
+      --text-muted: #475467;
+      --accent: #1570EF;
+      --selection: #D1E0FF;
+      --whatsapp: #25D366;
+      --ok: #067647;
+      --destructive: #D92D20;
+
+      /* Canales RGB derivados de la paleta del brief para bordes y sombras */
+      --rgb-text: 52, 64, 84;
+      --rgb-muted: 71, 84, 103;
+      --rgb-accent: 21, 112, 239;
+      --rgb-bg: 255, 255, 255;
+
+      --border-soft: rgba(var(--rgb-muted), 0.16);
+      --border-control: rgba(var(--rgb-muted), 0.28);
+      --r-lg: 12px;
+      --r-md: 10px;
+      --r-sm: 8px;
+      --font: 'Roboto', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--surface);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      padding: 24px 20px 32px;
+    }
+
+    .studio-sheet {
+      max-width: 1360px;
+      margin: 0 auto;
+    }
+
+    .sheet-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+      padding: 0 8px;
+    }
+
+    .sheet-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+
+    .sheet-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .screens-row {
+      display: flex;
+      flex-wrap: nowrap;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 32px;
+    }
+
+    .screen-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      flex: 0 0 auto;
+    }
+
+    .screen-caption {
+      width: 390px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 13px;
+      color: var(--text-muted);
+      padding: 0 4px;
+    }
+
+    .screen-caption strong {
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    /* Marco de teléfono Android (390 px de ancho interior) */
+    .phone-frame {
+      width: 406px;
+      padding: 8px;
+      border-radius: 36px;
+      background: var(--text);
+      box-shadow: 0 18px 40px rgba(var(--rgb-text), 0.16), 0 2px 6px rgba(var(--rgb-text), 0.10);
+    }
+
+    .phone-screen {
+      width: 390px;
+      height: 820px;
+      border-radius: 28px;
+      background: var(--bg);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* Barra de estado Android (SafeAreaView superior) */
+    .status-bar {
+      height: 28px;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+      flex-shrink: 0;
+    }
+
+    .status-icons {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Barra superior de pantalla */
+    .top-bar {
+      height: 54px;
+      padding: 0 16px 0 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-shrink: 0;
+      border-bottom: 1px solid var(--surface);
+    }
+
+    .top-bar-left {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .top-title-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .icon-btn {
+      width: 48px;
+      height: 48px;
+      flex-shrink: 0;
+      border: none;
+      background: transparent;
+      border-radius: var(--r-md);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text);
+      cursor: pointer;
+      transition: background 120ms ease;
+    }
+
+    .icon-btn:hover {
+      background: var(--surface);
+    }
+
+    .icon-btn:focus-visible,
+    .nudge-btn:focus-visible,
+    .seg-btn:focus-visible,
+    .cta-primary:focus-visible,
+    .cta-secondary:focus-visible,
+    .btn-whatsapp:focus-visible,
+    .ruler-handle:focus-visible,
+    .ruler-window:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .top-title {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.01em;
+      line-height: 1.2;
+    }
+
+    /* Aviso claro en pantalla de tanda junto a la flecha de volver */
+    .tanda-warning {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--destructive);
+      line-height: 1.2;
+    }
+
+    .meta-tag {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .tanda-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: var(--r-sm);
+      background: var(--selection);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      flex-shrink: 0;
+    }
+
+    /* Vista previa cuadrada 1:1 (encaje completo 512x512 sin cortar, >= 300 dp) */
+    .preview-zone {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 16px;
+      min-height: 0;
+    }
+
+    .square-stage {
+      width: 312px;
+      height: 312px;
+      border-radius: var(--r-lg);
+      background-color: var(--bg);
+      background-image:
+        linear-gradient(45deg, var(--surface) 25%, transparent 25%),
+        linear-gradient(-45deg, var(--surface) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, var(--surface) 75%),
+        linear-gradient(-45deg, transparent 75%, var(--surface) 75%);
+      background-size: 16px 16px;
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+      border: 1px solid var(--border-soft);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    /* Guías sutiles de encaje 1:1 en las 4 esquinas */
+    .crop-corner {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      border-color: rgba(var(--rgb-muted), 0.45);
+      border-style: solid;
+      pointer-events: none;
+      z-index: 3;
+    }
+    .crop-corner.tl { top: 8px; left: 8px; border-width: 1.5px 0 0 1.5px; border-top-left-radius: 3px; }
+    .crop-corner.tr { top: 8px; right: 8px; border-width: 1.5px 1.5px 0 0; border-top-right-radius: 3px; }
+    .crop-corner.bl { bottom: 8px; left: 8px; border-width: 0 0 1.5px 1.5px; border-bottom-left-radius: 3px; }
+    .crop-corner.br { bottom: 8px; right: 8px; border-width: 0 1.5px 1.5px 0; border-bottom-right-radius: 3px; }
+
+    .video-frame-landscape {
+      width: 296px;
+      height: 168px;
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(var(--rgb-text), 0.12);
+      position: relative;
+      z-index: 1;
+    }
+
+    .video-frame-portrait {
+      width: 168px;
+      height: 292px;
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(var(--rgb-text), 0.12);
+      position: relative;
+      z-index: 1;
+    }
+
+    .video-frame-landscape svg,
+    .video-frame-portrait svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Metadatos de reproducción fuera del cuadro 1:1 para no tapar ni montar bordes del video */
+    .stage-meta {
+      width: 312px;
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+      line-height: 1.3;
+    }
+
+    .stage-meta-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .pause-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(var(--rgb-text), 0.24);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 150ms ease;
+      z-index: 5;
+    }
+
+    .square-stage.is-paused .pause-overlay {
+      opacity: 1;
+    }
+
+    .pause-circle {
+      width: 48px;
+      height: 48px;
+      border-radius: 24px;
+      background: rgba(var(--rgb-bg), 0.94);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(var(--rgb-text), 0.22);
+    }
+
+    /* Tarjeta de control #F2F4F7 compacta con regla temporal graduada */
+    .control-card {
+      margin: 0 16px;
+      padding: 11px 12px;
+      border-radius: var(--r-lg);
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      flex-shrink: 0;
+      overflow: visible;
+    }
+
+    .readout-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .readout-primary {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.015em;
+      line-height: 1.2;
+    }
+
+    .readout-duration {
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    /* Mapa panorámico de ubicación dentro del video completo */
+    .overview-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .overview-track {
+      flex: 1;
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(var(--rgb-muted), 0.18);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .overview-viewport {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      background: var(--selection);
+      border-radius: 2px;
+    }
+
+    .overview-window {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      background: var(--accent);
+      border-radius: 2px;
+    }
+
+    .overview-time {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+      min-width: 28px;
+    }
+
+    .overview-time.end {
+      text-align: right;
+    }
+
+    /* Regla temporal graduada — overflow: visible para nunca recortar los 48 dp de las manijas */
+    .ruler-tray {
+      background: var(--bg);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--r-md);
+      padding: 6px 24px 8px;
+      position: relative;
+      overflow: visible;
+    }
+
+    /* Indicadores sutiles cuando el video sigue fuera del encuadre visible */
+    .ruler-tray::before,
+    .ruler-tray::after {
+      content: '';
+      position: absolute;
+      top: 1px;
+      bottom: 1px;
+      width: 14px;
+      pointer-events: none;
+      z-index: 4;
+      opacity: 0;
+      transition: opacity 150ms ease;
+    }
+
+    .ruler-tray::before {
+      left: 1px;
+      border-radius: var(--r-sm) 0 0 var(--r-sm);
+      background: linear-gradient(90deg, rgba(var(--rgb-bg), 0.96), rgba(var(--rgb-bg), 0));
+    }
+
+    .ruler-tray::after {
+      right: 1px;
+      border-radius: 0 var(--r-sm) var(--r-sm) 0;
+      background: linear-gradient(270deg, rgba(var(--rgb-bg), 0.96), rgba(var(--rgb-bg), 0));
+    }
+
+    .ruler-tray.has-left::before { opacity: 1; }
+    .ruler-tray.has-right::after { opacity: 1; }
+
+    .ruler-scale {
+      position: relative;
+      height: 19px;
+      margin-bottom: 3px;
+    }
+
+    .tick {
+      position: absolute;
+      bottom: 0;
+      width: 1px;
+      transform: translateX(-0.5px);
+      pointer-events: none;
+    }
+
+    .tick.half {
+      height: 4px;
+      background: rgba(var(--rgb-muted), 0.22);
+    }
+
+    .tick.sec {
+      height: 8px;
+      background: rgba(var(--rgb-muted), 0.48);
+    }
+
+    .tick.major {
+      height: 11px;
+      background: var(--text-muted);
+    }
+
+    .tick-label {
+      position: absolute;
+      top: 0;
+      transform: translateX(-50%);
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      pointer-events: none;
+      line-height: 1;
+    }
+
+    .ruler-lane {
+      position: relative;
+      height: 50px;
+      background: var(--surface);
+      border-radius: 6px;
+      border: 1px solid var(--border-soft);
+      overflow: visible;
+    }
+
+    /* Líneas verticales suaves que bajan por el carril cada segundo */
+    .lane-grid-line {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background: rgba(var(--rgb-bg), 0.85);
+      pointer-events: none;
+    }
+
+    /* Bloque central deslizable (#D1E0FF) — gesto principal para mover el tramo entero */
+    .ruler-window {
+      position: absolute;
+      top: -1px;
+      bottom: -1px;
+      background: var(--selection);
+      border-top: 2px solid var(--accent);
+      border-bottom: 2px solid var(--accent);
+      cursor: grab;
+      touch-action: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+      overflow: hidden;
+      transition: box-shadow 120ms ease;
+    }
+
+    .ruler-window:hover {
+      box-shadow: inset 0 0 0 1px rgba(var(--rgb-accent), 0.28);
+    }
+
+    .ruler-window.is-dragging {
+      cursor: grabbing;
+      box-shadow: inset 0 0 0 2px rgba(var(--rgb-accent), 0.45);
+    }
+
+    /* Affordance central de agarre: pastilla blanca con flechas y barras de agarre */
+    .window-grip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      height: 26px;
+      padding: 0 7px;
+      border-radius: 999px;
+      background: var(--bg);
+      border: 1px solid rgba(var(--rgb-accent), 0.45);
+      color: var(--accent);
+      box-shadow: 0 1px 2px rgba(var(--rgb-text), 0.08);
+      pointer-events: none;
+      transition: background 100ms ease, color 100ms ease, border-color 100ms ease;
+    }
+
+    .ruler-window.is-dragging .window-grip {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--bg);
+    }
+
+    .grip-bars {
+      display: inline-flex;
+      align-items: center;
+      gap: 2.5px;
+    }
+
+    .grip-bars span {
+      width: 2px;
+      height: 11px;
+      border-radius: 1px;
+      background: currentColor;
+    }
+
+    .grip-arrow {
+      display: inline-flex;
+      align-items: center;
+      opacity: 0.9;
+    }
+
+    /* Modos compactos cuando el tramo se achica cerca de 1 s */
+    .ruler-window.is-compact .grip-arrow {
+      display: none;
+    }
+
+    .ruler-window.is-compact .window-grip {
+      padding: 0 6px;
+    }
+
+    .ruler-window.is-tight .window-grip {
+      background: transparent;
+      border-color: transparent;
+      box-shadow: none;
+      padding: 0;
+    }
+
+    /* Manijas externas con área táctil real de 48×52 dp (sin recorte incluso en 0:00) */
+    .ruler-handle {
+      position: absolute;
+      top: -2px;
+      bottom: -2px;
+      width: 48px;
+      background: transparent;
+      cursor: ew-resize;
+      touch-action: none;
+      z-index: 6;
+    }
+
+    .ruler-handle.start {
+      transform: translateX(-100%);
+    }
+
+    .handle-cap {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 16px;
+      background: var(--accent);
+      color: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 1px 3px rgba(var(--rgb-accent), 0.30);
+      pointer-events: none;
+      transition: width 100ms ease, box-shadow 100ms ease;
+    }
+
+    .ruler-handle.start .handle-cap {
+      right: 0;
+      border-radius: var(--r-sm) 0 0 var(--r-sm);
+    }
+
+    .ruler-handle.end .handle-cap {
+      left: 0;
+      border-radius: 0 var(--r-sm) var(--r-sm) 0;
+    }
+
+    .ruler-handle:hover .handle-cap,
+    .ruler-handle.is-active .handle-cap {
+      width: 18px;
+      box-shadow: 0 2px 6px rgba(var(--rgb-accent), 0.38);
+    }
+
+    /* Cabezal de reproducción en loop */
+    .playhead {
+      position: absolute;
+      top: -4px;
+      bottom: -4px;
+      width: 2px;
+      background: var(--text);
+      border-radius: 1px;
+      z-index: 5;
+      pointer-events: none;
+      transform: translateX(-1px);
+    }
+
+    .playhead::before {
+      content: '';
+      position: absolute;
+      top: -3px;
+      left: -3px;
+      width: 8px;
+      height: 8px;
+      border-radius: 4px;
+      background: var(--text);
+    }
+
+    /* Fila de ajuste fino (-0,5 s / Inicio|Tramo|Fin / +0,5 s), todos >= 48 dp de alto */
+    .fine-row {
+      display: flex;
+      align-items: stretch;
+      gap: 8px;
+    }
+
+    .nudge-btn {
+      min-width: 68px;
+      height: 48px;
+      padding: 0 8px;
+      border-radius: var(--r-md);
+      border: 1px solid var(--border-control);
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 100ms ease, border-color 100ms ease, color 100ms ease;
+    }
+
+    .nudge-btn:hover:not(:disabled) {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .nudge-btn:active:not(:disabled) {
+      background: var(--selection);
+      color: var(--text);
+    }
+
+    .nudge-btn:disabled {
+      opacity: 0.38;
+      cursor: not-allowed;
+    }
+
+    /* Selector segmentado Inicio | Tramo | Fin con botones de 48 dp completos */
+    .seg-group {
+      flex: 1;
+      min-height: 48px;
+      padding: 0;
+      border-radius: var(--r-md);
+      background: var(--bg);
+      box-shadow: inset 0 0 0 1px var(--border-control);
+      display: flex;
+      overflow: hidden;
+    }
+
+    .seg-btn {
+      flex: 1;
+      min-height: 48px;
+      height: 48px;
+      border: none;
+      border-right: 1px solid var(--border-soft);
+      background: transparent;
+      color: var(--text-muted);
+      font-family: var(--font);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 120ms ease, color 120ms ease;
+    }
+
+    .seg-btn:last-child {
+      border-right: none;
+    }
+
+    .seg-btn:hover:not(.is-active) {
+      background: var(--surface);
+      color: var(--text);
+    }
+
+    .seg-btn.is-active {
+      background: var(--selection);
+      color: var(--text);
+      font-weight: 600;
+      box-shadow: inset 0 -2px 0 var(--accent);
+    }
+
+    /* Zona inferior del pulgar */
+    .bottom-dock {
+      padding: 10px 16px 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .cta-primary {
+      width: 100%;
+      min-height: 50px;
+      padding: 13px 16px;
+      border: none;
+      border-radius: var(--r-lg);
+      background: var(--accent);
+      color: var(--bg);
+      font-family: var(--font);
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: opacity 120ms ease;
+    }
+
+    .cta-primary:hover {
+      opacity: 0.92;
+    }
+
+    .cta-secondary {
+      width: 100%;
+      min-height: 48px;
+      padding: 12px 16px;
+      border: 1px solid var(--border-control);
+      border-radius: var(--r-lg);
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 120ms ease, border-color 120ms ease;
+    }
+
+    .cta-secondary:hover {
+      background: var(--surface);
+      border-color: var(--text-muted);
+    }
+
+    /* Feedback sutil interactivo al probar botones en el prototipo */
+    .proto-toast {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 84px;
+      padding: 10px 14px;
+      border-radius: var(--r-md);
+      background: var(--text);
+      color: var(--bg);
+      font-size: 13px;
+      font-weight: 500;
+      text-align: center;
+      opacity: 0;
+      transform: translateY(6px);
+      pointer-events: none;
+      transition: opacity 180ms ease, transform 180ms ease;
+      z-index: 20;
+    }
+
+    .proto-toast.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Barra de gestos Android (SafeAreaView inferior) */
+    .gesture-bar {
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .gesture-pill {
+      width: 108px;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--text-muted);
+      opacity: 0.35;
+    }
+
+    /* ============================================================
+       PANTALLA 3: PantallaPaquetes (fiel a PantallaPaquetes.tsx y App.tsx)
+       ============================================================ */
+    .paquetes-list {
+      flex: 1;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+    }
+
+    .paquete-card {
+      padding: 16px;
+      border-radius: var(--r-lg);
+      background: var(--surface);
+    }
+
+    .paquete-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .paquete-name {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .paquete-count {
+      font-size: 16px;
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .paquete-status {
+      margin-top: 4px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .paquete-status.is-added {
+      color: var(--ok);
+      font-weight: 600;
+    }
+
+    .sticker-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .sticker-cell {
+      width: 72px;
+      height: 72px;
+      border-radius: var(--r-sm);
+      border: 2px solid transparent;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .sticker-cell svg {
+      width: 60px;
+      height: 60px;
+    }
+
+    .btn-whatsapp {
+      margin-top: 12px;
+      width: 100%;
+      min-height: 48px;
+      padding: 12px;
+      border: none;
+      border-radius: var(--r-md);
+      background: var(--whatsapp);
+      color: var(--bg);
+      font-family: var(--font);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .paquetes-footer {
+      border-top: 1px solid var(--surface);
+      padding: 10px 16px 4px;
+      background: var(--bg);
+      flex-shrink: 0;
+    }
+
+    .aviso-linea {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 2px 2px 10px;
+      font-size: 13.5px;
+      font-weight: 500;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .aviso-info {
+      width: 18px;
+      height: 18px;
+      color: var(--accent);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="studio-sheet">
+    <header class="sheet-header">
+      <div class="sheet-title">StickerCreator — Selector de tramo</div>
+      <div class="sheet-subtitle">Dirección 3 (Neon): Regla temporal graduada · Arrastrá el bloque central para mover el tramo o ajustá los extremos</div>
+    </header>
+
+    <main class="screens-row">
+      <!-- ============================================================
+           PANTALLA 1: Selector de tramo — video suelto (0:00 – 0:05)
+           ============================================================ -->
+      <section class="screen-col" aria-label="Pantalla 1: Video suelto">
+        <div class="screen-caption">
+          <strong>1. Video suelto</strong>
+          <span>Sugerencia 0:00–0:05 · un toque en Crear</span>
+        </div>
+
+        <div class="phone-frame">
+          <div class="phone-screen" data-selector="solo" data-duration="18" data-start="0" data-end="5" data-view-start="0" data-view-span="12">
+            <!-- Status bar -->
+            <div class="status-bar">
+              <span>13:10</span>
+              <div class="status-icons" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 18a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-4.9-2.3 1.4 1.4a5 5 0 0 1 7 0l1.4-1.4a7 7 0 0 0-9.8 0zm-2.8-2.8 1.4 1.4a9 9 0 0 1 12.6 0l1.4-1.4a11 11 0 0 0-15.4 0z"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M2 20h3v-4H2v4zm5 0h3v-8H7v8zm5 0h3V8h-3v12zm5 0h3V4h-3v16z"/></svg>
+                <svg width="18" height="14" viewBox="0 0 28 14" fill="none"><rect x="1" y="2" width="22" height="10" rx="2.5" stroke="currentColor" stroke-width="1.6"/><rect x="3.5" y="4.5" width="15" height="5" rx="1" fill="currentColor"/><path d="M25 5v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              </div>
+            </div>
+
+            <!-- Top bar -->
+            <header class="top-bar">
+              <div class="top-bar-left">
+                <button class="icon-btn" type="button" aria-label="Volver" data-action="back">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+                </button>
+                <h1 class="top-title">Selector de tramo</h1>
+              </div>
+              <span class="meta-tag">Video 0:18</span>
+            </header>
+
+            <!-- Vista previa 1:1 (video 16:9 encajado entero, sin cortar) -->
+            <div class="preview-zone">
+              <div class="square-stage" role="button" tabindex="0" aria-label="Vista previa en loop sin audio, tocá para pausar o seguir" data-role="stage">
+                <span class="crop-corner tl"></span>
+                <span class="crop-corner tr"></span>
+                <span class="crop-corner bl"></span>
+                <span class="crop-corner br"></span>
+
+                <div class="video-frame-landscape">
+                  <svg viewBox="0 0 236 134" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <defs>
+                      <linearGradient id="sky1" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#CFE8FF"/>
+                        <stop offset="68%" stop-color="#EAF5FF"/>
+                        <stop offset="100%" stop-color="#DDF2DC"/>
+                      </linearGradient>
+                    </defs>
+                    <rect width="236" height="134" fill="url(#sky1)"/>
+                    <!-- Nube animada -->
+                    <g data-anim="cloud1">
+                      <ellipse cx="48" cy="28" rx="18" ry="8" fill="#FFFFFF" opacity="0.9"/>
+                      <ellipse cx="60" cy="25" rx="13" ry="7" fill="#FFFFFF" opacity="0.9"/>
+                    </g>
+                    <!-- Sol -->
+                    <circle cx="196" cy="26" r="12" fill="#FDE68A"/>
+                    <!-- Pasto / costa -->
+                    <path d="M0 96 Q70 84 140 94 T236 92 L236 134 L0 134 Z" fill="#86CE92"/>
+                    <path d="M0 108 Q110 100 236 112 L236 134 L0 134 Z" fill="#63B675"/>
+                    <!-- Carpincho tomando mate -->
+                    <g data-anim="carpincho" transform="translate(116, 78)">
+                      <ellipse cx="0" cy="18" rx="34" ry="22" fill="#8D6344"/>
+                      <ellipse cx="14" cy="-6" rx="22" ry="16" fill="#9E714F"/>
+                      <rect x="24" y="-12" width="14" height="13" rx="6" fill="#8D6344"/>
+                      <ellipse cx="4" cy="-20" rx="5" ry="7" fill="#7C5438"/>
+                      <path d="M16 -8 Q20 -11 24 -8" stroke="#2D1E14" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+                      <ellipse cx="35" cy="-7" rx="2.5" ry="2" fill="#3B2618"/>
+                      <g transform="translate(32, 10)">
+                        <ellipse cx="8" cy="10" rx="10" ry="11" fill="#6B3E26"/>
+                        <ellipse cx="8" cy="1" rx="8" ry="3.5" fill="#4C7C3B"/>
+                        <line x1="10" y1="1" x2="0" y2="-13" stroke="#D0D5DD" stroke-width="2.4" stroke-linecap="round"/>
+                        <circle cx="0" cy="-13" r="2" fill="#98A2B3"/>
+                        <path data-anim="steam1" d="M6 -5 Q3 -11 7 -17" stroke="#FFFFFF" stroke-width="1.8" fill="none" stroke-linecap="round" opacity="0.85"/>
+                        <path data-anim="steam2" d="M12 -4 Q15 -10 11 -16" stroke="#FFFFFF" stroke-width="1.6" fill="none" stroke-linecap="round" opacity="0.7"/>
+                      </g>
+                    </g>
+                    <circle cx="42" cy="112" r="5" fill="#FEF08A"/>
+                    <circle cx="42" cy="112" r="2" fill="#F59E0B"/>
+                  </svg>
+                </div>
+
+                <div class="pause-overlay" aria-hidden="true">
+                  <div class="pause-circle">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                  </div>
+                </div>
+              </div>
+
+              <div class="stage-meta">
+                <span class="stage-meta-item">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+                  Sin audio · Loop
+                </span>
+                <span data-role="play-clock">0:01,4</span>
+              </div>
+            </div>
+
+            <!-- Tarjeta de control #F2F4F7 -->
+            <div class="control-card">
+              <div class="readout-header">
+                <div class="readout-primary" data-role="readout">0:00 – 0:05 · <span class="readout-duration">5,0 s</span></div>
+                <span class="meta-tag">1 a 5 s</span>
+              </div>
+
+              <!-- Minimap de posición dentro del video completo -->
+              <div class="overview-row" aria-hidden="true">
+                <span class="overview-time">0:00</span>
+                <div class="overview-track">
+                  <div class="overview-viewport" data-role="ov-view" style="left: 0%; width: 66.7%;"></div>
+                  <div class="overview-window" data-role="ov-win" style="left: 0%; width: 27.8%;"></div>
+                </div>
+                <span class="overview-time end">0:18</span>
+              </div>
+
+              <!-- Regla temporal graduada sin miniaturas -->
+              <div class="ruler-tray has-right" data-role="ruler-tray">
+                <div class="ruler-scale" data-role="ruler-scale"></div>
+                <div class="ruler-lane" data-role="ruler-lane">
+                  <div class="ruler-window" tabindex="0" role="slider" aria-label="Arrastrar tramo entero" data-role="window">
+                    <div class="window-grip" aria-hidden="true">
+                      <span class="grip-arrow">
+                        <svg width="6" height="10" viewBox="0 0 6 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 1.5 1.5 5l3 3.5"/></svg>
+                      </span>
+                      <span class="grip-bars"><span></span><span></span><span></span></span>
+                      <span class="grip-arrow">
+                        <svg width="6" height="10" viewBox="0 0 6 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 1.5 4.5 5l-3 3.5"/></svg>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="ruler-handle start" tabindex="0" role="slider" aria-label="Ajustar inicio del tramo" data-role="handle-start">
+                    <span class="handle-cap" aria-hidden="true">
+                      <svg width="8" height="14" viewBox="0 0 10 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3 2.5 8l4 5"/></svg>
+                    </span>
+                  </div>
+                  <div class="ruler-handle end" tabindex="0" role="slider" aria-label="Ajustar fin del tramo" data-role="handle-end">
+                    <span class="handle-cap" aria-hidden="true">
+                      <svg width="8" height="14" viewBox="0 0 10 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 3 7.5 8l-4 5"/></svg>
+                    </span>
+                  </div>
+                  <div class="playhead" data-role="playhead"></div>
+                </div>
+              </div>
+
+              <!-- Ajuste fino con una mano (-0,5 s / +0,5 s) -->
+              <div class="fine-row">
+                <button class="nudge-btn" type="button" data-nudge="-0.5" aria-label="Restar medio segundo">−0,5 s</button>
+                <div class="seg-group" role="tablist" aria-label="Qué parte del tramo ajustar">
+                  <button class="seg-btn" type="button" role="tab" aria-selected="false" data-target="start">Inicio</button>
+                  <button class="seg-btn is-active" type="button" role="tab" aria-selected="true" data-target="window">Tramo</button>
+                  <button class="seg-btn" type="button" role="tab" aria-selected="false" data-target="end">Fin</button>
+                </div>
+                <button class="nudge-btn" type="button" data-nudge="0.5" aria-label="Sumar medio segundo">+0,5 s</button>
+              </div>
+            </div>
+
+            <!-- CTA fijo abajo en zona del pulgar -->
+            <div class="bottom-dock">
+              <button class="cta-primary" type="button" data-action="create">Crear</button>
+            </div>
+
+            <div class="proto-toast" data-role="toast"></div>
+
+            <div class="gesture-bar" aria-hidden="true">
+              <span class="gesture-pill"></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           PANTALLA 2: Selector de tramo — en tanda (2 de 3, 0:12 – 0:15)
+           ============================================================ -->
+      <section class="screen-col" aria-label="Pantalla 2: Selector en tanda">
+        <div class="screen-caption">
+          <strong>2. En tanda (2 de 3)</strong>
+          <span>Tramo desplazado 0:12–0:15 · 3,0 s</span>
+        </div>
+
+        <div class="phone-frame">
+          <div class="phone-screen" data-selector="tanda" data-duration="24" data-start="12" data-end="15" data-view-start="8" data-view-span="12">
+            <!-- Status bar -->
+            <div class="status-bar">
+              <span>13:10</span>
+              <div class="status-icons" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 18a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-4.9-2.3 1.4 1.4a5 5 0 0 1 7 0l1.4-1.4a7 7 0 0 0-9.8 0zm-2.8-2.8 1.4 1.4a9 9 0 0 1 12.6 0l1.4-1.4a11 11 0 0 0-15.4 0z"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M2 20h3v-4H2v4zm5 0h3v-8H7v8zm5 0h3V8h-3v12zm5 0h3V4h-3v16z"/></svg>
+                <svg width="18" height="14" viewBox="0 0 28 14" fill="none"><rect x="1" y="2" width="22" height="10" rx="2.5" stroke="currentColor" stroke-width="1.6"/><rect x="3.5" y="4.5" width="15" height="5" rx="1" fill="currentColor"/><path d="M25 5v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              </div>
+            </div>
+
+            <!-- Top bar con aviso visible junto a la flecha de volver e indicador de tanda -->
+            <header class="top-bar">
+              <div class="top-bar-left">
+                <button class="icon-btn" type="button" aria-label="Volver y cancelar la tanda" data-action="cancel-tanda">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+                </button>
+                <div class="top-title-stack">
+                  <h1 class="top-title">Selector de tramo</h1>
+                  <span class="tanda-warning">Volver cancela la tanda</span>
+                </div>
+              </div>
+              <span class="tanda-pill">2 de 3</span>
+            </header>
+
+            <!-- Vista previa 1:1 (video vertical 9:16 encajado entero, sin cortar) -->
+            <div class="preview-zone">
+              <div class="square-stage" role="button" tabindex="0" aria-label="Vista previa en loop sin audio, tocá para pausar o seguir" data-role="stage">
+                <span class="crop-corner tl"></span>
+                <span class="crop-corner tr"></span>
+                <span class="crop-corner bl"></span>
+                <span class="crop-corner br"></span>
+
+                <div class="video-frame-portrait">
+                  <svg viewBox="0 0 136 236" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <defs>
+                      <linearGradient id="bg2" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#FFE8D6"/>
+                        <stop offset="65%" stop-color="#FFF5EB"/>
+                        <stop offset="100%" stop-color="#FDE2C8"/>
+                      </linearGradient>
+                    </defs>
+                    <rect width="136" height="236" fill="url(#bg2)"/>
+                    <rect x="0" y="176" width="136" height="60" fill="#E8C6A8"/>
+                    <line x1="0" y1="176" x2="136" y2="176" stroke="#D9B18E" stroke-width="2"/>
+                    <g data-anim="sparkles">
+                      <circle cx="28" cy="54" r="4" fill="#1570EF" opacity="0.75"/>
+                      <circle cx="110" cy="46" r="3.5" fill="#F97316" opacity="0.8"/>
+                      <circle cx="102" cy="84" r="3" fill="#25D366" opacity="0.8"/>
+                      <rect x="24" y="88" width="6" height="6" rx="1.5" fill="#F59E0B" transform="rotate(20 27 91)"/>
+                    </g>
+                    <ellipse data-anim="shadow2" cx="68" cy="192" rx="30" ry="7" fill="#C7A07F" opacity="0.65"/>
+                    <g data-anim="dog" transform="translate(68, 134)">
+                      <ellipse cx="-24" cy="-16" rx="9" ry="18" fill="#B87A4B" transform="rotate(14 -24 -16)"/>
+                      <ellipse cx="24" cy="-16" rx="9" ry="18" fill="#B87A4B" transform="rotate(-14 24 -16)"/>
+                      <ellipse cx="0" cy="24" rx="22" ry="26" fill="#E3A86E"/>
+                      <ellipse cx="0" cy="28" rx="13" ry="16" fill="#F9DFC2"/>
+                      <ellipse cx="-22" cy="10" rx="7" ry="13" fill="#E3A86E" transform="rotate(-35 -22 10)"/>
+                      <ellipse cx="22" cy="10" rx="7" ry="13" fill="#E3A86E" transform="rotate(35 22 10)"/>
+                      <circle cx="0" cy="-12" r="24" fill="#E3A86E"/>
+                      <ellipse cx="0" cy="-4" rx="12" ry="9" fill="#F9DFC2"/>
+                      <ellipse cx="0" cy="-8" rx="4.5" ry="3.2" fill="#2D1E14"/>
+                      <path d="M-5 -2 Q0 4 5 -2" stroke="#2D1E14" stroke-width="2" fill="none" stroke-linecap="round"/>
+                      <path d="M-3 0 Q0 8 3 0 Z" fill="#F43F5E"/>
+                      <rect x="-20" y="-22" width="17" height="11" rx="3" fill="#344054"/>
+                      <rect x="3" y="-22" width="17" height="11" rx="3" fill="#344054"/>
+                      <line x1="-3" y1="-17" x2="3" y2="-17" stroke="#344054" stroke-width="2.5"/>
+                      <line x1="-16" y1="-19" x2="-11" y2="-14" stroke="#FFFFFF" stroke-width="1.5" opacity="0.55" stroke-linecap="round"/>
+                      <line x1="7" y1="-19" x2="12" y2="-14" stroke="#FFFFFF" stroke-width="1.5" opacity="0.55" stroke-linecap="round"/>
+                    </g>
+                    <circle data-anim="ball2" cx="104" cy="156" r="10" fill="#1570EF"/>
+                    <path data-anim="ball2-stripe" d="M97 152 Q104 156 111 160" stroke="#D1E0FF" stroke-width="2" fill="none"/>
+                  </svg>
+                </div>
+
+                <div class="pause-overlay" aria-hidden="true">
+                  <div class="pause-circle">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                  </div>
+                </div>
+              </div>
+
+              <div class="stage-meta">
+                <span class="stage-meta-item">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+                  Sin audio · Loop
+                </span>
+                <span data-role="play-clock">0:13,2</span>
+              </div>
+            </div>
+
+            <!-- Tarjeta de control #F2F4F7 -->
+            <div class="control-card">
+              <div class="readout-header">
+                <div class="readout-primary" data-role="readout">0:12 – 0:15 · <span class="readout-duration">3,0 s</span></div>
+                <span class="meta-tag">Video 0:24</span>
+              </div>
+
+              <!-- Minimap de posición dentro del video completo (0:24) -->
+              <div class="overview-row" aria-hidden="true">
+                <span class="overview-time">0:00</span>
+                <div class="overview-track">
+                  <div class="overview-viewport" data-role="ov-view" style="left: 33.3%; width: 50%;"></div>
+                  <div class="overview-window" data-role="ov-win" style="left: 50%; width: 12.5%;"></div>
+                </div>
+                <span class="overview-time end">0:24</span>
+              </div>
+
+              <!-- Regla temporal graduada sin miniaturas (desplazada en 0:08–0:20) -->
+              <div class="ruler-tray has-left has-right" data-role="ruler-tray">
+                <div class="ruler-scale" data-role="ruler-scale"></div>
+                <div class="ruler-lane" data-role="ruler-lane">
+                  <div class="ruler-window" tabindex="0" role="slider" aria-label="Arrastrar tramo entero" data-role="window">
+                    <div class="window-grip" aria-hidden="true">
+                      <span class="grip-arrow">
+                        <svg width="6" height="10" viewBox="0 0 6 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 1.5 1.5 5l3 3.5"/></svg>
+                      </span>
+                      <span class="grip-bars"><span></span><span></span><span></span></span>
+                      <span class="grip-arrow">
+                        <svg width="6" height="10" viewBox="0 0 6 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 1.5 4.5 5l-3 3.5"/></svg>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="ruler-handle start" tabindex="0" role="slider" aria-label="Ajustar inicio del tramo" data-role="handle-start">
+                    <span class="handle-cap" aria-hidden="true">
+                      <svg width="8" height="14" viewBox="0 0 10 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3 2.5 8l4 5"/></svg>
+                    </span>
+                  </div>
+                  <div class="ruler-handle end" tabindex="0" role="slider" aria-label="Ajustar fin del tramo" data-role="handle-end">
+                    <span class="handle-cap" aria-hidden="true">
+                      <svg width="8" height="14" viewBox="0 0 10 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 3 7.5 8l-4 5"/></svg>
+                    </span>
+                  </div>
+                  <div class="playhead" data-role="playhead"></div>
+                </div>
+              </div>
+
+              <!-- Ajuste fino con una mano (-0,5 s / +0,5 s) -->
+              <div class="fine-row">
+                <button class="nudge-btn" type="button" data-nudge="-0.5" aria-label="Restar medio segundo">−0,5 s</button>
+                <div class="seg-group" role="tablist" aria-label="Qué parte del tramo ajustar">
+                  <button class="seg-btn" type="button" role="tab" aria-selected="false" data-target="start">Inicio</button>
+                  <button class="seg-btn is-active" type="button" role="tab" aria-selected="true" data-target="window">Tramo</button>
+                  <button class="seg-btn" type="button" role="tab" aria-selected="false" data-target="end">Fin</button>
+                </div>
+                <button class="nudge-btn" type="button" data-nudge="0.5" aria-label="Sumar medio segundo">+0,5 s</button>
+              </div>
+            </div>
+
+            <!-- Zona del pulgar: acción de atajo de tanda + CTA principal -->
+            <div class="bottom-dock">
+              <button class="cta-secondary" type="button" data-action="auto-rest">Usar automático para el resto</button>
+              <button class="cta-primary" type="button" data-action="next">Siguiente</button>
+            </div>
+
+            <div class="proto-toast" data-role="toast"></div>
+
+            <div class="gesture-bar" aria-hidden="true">
+              <span class="gesture-pill"></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           PANTALLA 3: PantallaPaquetes con aviso final de tanda
+           ============================================================ -->
+      <section class="screen-col" aria-label="Pantalla 3: Aviso final de tanda">
+        <div class="screen-caption">
+          <strong>3. Aviso final de tanda</strong>
+          <span>PantallaPaquetes · tramo acortado</span>
+        </div>
+
+        <div class="phone-frame">
+          <div class="phone-screen" data-screen="paquetes">
+            <!-- Status bar -->
+            <div class="status-bar">
+              <span>13:11</span>
+              <div class="status-icons" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 18a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-4.9-2.3 1.4 1.4a5 5 0 0 1 7 0l1.4-1.4a7 7 0 0 0-9.8 0zm-2.8-2.8 1.4 1.4a9 9 0 0 1 12.6 0l1.4-1.4a11 11 0 0 0-15.4 0z"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M2 20h3v-4H2v4zm5 0h3v-8H7v8zm5 0h3V8h-3v12zm5 0h3V4h-3v16z"/></svg>
+                <svg width="18" height="14" viewBox="0 0 28 14" fill="none"><rect x="1" y="2" width="22" height="10" rx="2.5" stroke="currentColor" stroke-width="1.6"/><rect x="3.5" y="4.5" width="15" height="5" rx="1" fill="currentColor"/><path d="M25 5v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              </div>
+            </div>
+
+            <!-- Lista de paquetes (fiel a PantallaPaquetes.tsx) -->
+            <div class="paquetes-list">
+              <!-- Paquete animado ya agregado -->
+              <article class="paquete-card">
+                <div class="paquete-head">
+                  <h2 class="paquete-name">Mis stickers animados</h2>
+                  <span class="paquete-count">6/30</span>
+                </div>
+                <p class="paquete-status is-added">Agregado a WhatsApp</p>
+                <div class="sticker-grid">
+                  <div class="sticker-cell" title="Sticker animado 1">
+                    <svg viewBox="0 0 60 60"><circle cx="30" cy="30" r="22" fill="#FEF3C7"/><circle cx="23" cy="26" r="3" fill="#344054"/><circle cx="37" cy="26" r="3" fill="#344054"/><path d="M21 36 Q30 44 39 36" stroke="#344054" stroke-width="3" fill="none" stroke-linecap="round"/></svg>
+                  </div>
+                  <div class="sticker-cell" title="Sticker animado 2">
+                    <svg viewBox="0 0 60 60"><rect x="12" y="18" width="36" height="28" rx="12" fill="#D1E0FF"/><path d="M20 30 h20 M30 24 v12" stroke="#1570EF" stroke-width="3.5" stroke-linecap="round"/></svg>
+                  </div>
+                  <div class="sticker-cell" title="Sticker animado 3">
+                    <svg viewBox="0 0 60 60"><path d="M30 48 C16 39 10 31 10 22 a10 10 0 0 1 20-3 a10 10 0 0 1 20 3 c0 9-6 17-20 26z" fill="#FCA5A5"/></svg>
+                  </div>
+                  <div class="sticker-cell is-new" title="Nuevo sticker 1 de la tanda">
+                    <svg viewBox="0 0 60 60">
+                      <rect x="6" y="14" width="48" height="32" rx="6" fill="#CFE8FF"/>
+                      <rect x="6" y="34" width="48" height="12" rx="4" fill="#86CE92"/>
+                      <ellipse cx="28" cy="34" rx="13" ry="9" fill="#8D6344"/>
+                      <ellipse cx="35" cy="25" rx="8" ry="6" fill="#9E714F"/>
+                      <circle cx="44" cy="36" r="4" fill="#6B3E26"/>
+                    </svg>
+                  </div>
+                  <div class="sticker-cell is-new" title="Nuevo sticker 2 de la tanda">
+                    <svg viewBox="0 0 60 60">
+                      <rect x="14" y="6" width="32" height="48" rx="6" fill="#FFE8D6"/>
+                      <circle cx="30" cy="25" r="11" fill="#E3A86E"/>
+                      <rect x="21" y="21" width="8" height="5" rx="1.5" fill="#344054"/>
+                      <rect x="31" y="21" width="8" height="5" rx="1.5" fill="#344054"/>
+                      <ellipse cx="30" cy="41" rx="9" ry="8" fill="#E3A86E"/>
+                    </svg>
+                  </div>
+                  <div class="sticker-cell is-new" title="Nuevo sticker 3 de la tanda">
+                    <svg viewBox="0 0 60 60">
+                      <rect x="10" y="10" width="40" height="40" rx="8" fill="#D1E0FF"/>
+                      <circle cx="30" cy="30" r="13" fill="#FFFFFF" stroke="#1570EF" stroke-width="2.5"/>
+                      <polygon points="30,22 36,27 34,35 26,35 24,27" fill="#344054"/>
+                    </svg>
+                  </div>
+                </div>
+              </article>
+
+              <!-- Paquete estático listo para agregar -->
+              <article class="paquete-card">
+                <div class="paquete-head">
+                  <h2 class="paquete-name">Mis stickers</h2>
+                  <span class="paquete-count">4/30</span>
+                </div>
+                <p class="paquete-status">Listo para agregar a WhatsApp</p>
+                <div class="sticker-grid">
+                  <div class="sticker-cell" title="Sticker estático 1">
+                    <svg viewBox="0 0 60 60"><ellipse cx="30" cy="35" rx="14" ry="15" fill="#6B3E26"/><ellipse cx="30" cy="22" rx="11" ry="4.5" fill="#4C7C3B"/><line x1="33" y1="22" x2="21" y2="8" stroke="#98A2B3" stroke-width="3" stroke-linecap="round"/></svg>
+                  </div>
+                  <div class="sticker-cell" title="Sticker estático 2">
+                    <svg viewBox="0 0 60 60"><path d="M12 36 Q30 14 48 36 Q30 46 12 36 Z" fill="#FBBF24" stroke="#B45309" stroke-width="2"/></svg>
+                  </div>
+                  <div class="sticker-cell" title="Sticker estático 3">
+                    <svg viewBox="0 0 60 60"><circle cx="30" cy="30" r="18" fill="#BBF7D0"/><path d="M22 30 l6 6 l12-13" stroke="#067647" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </div>
+                  <div class="sticker-cell" title="Sticker estático 4">
+                    <svg viewBox="0 0 60 60"><polygon points="30,10 36,23 50,25 40,34 42,48 30,41 18,48 20,34 10,25 24,23" fill="#FDE047" stroke="#CA8A04" stroke-width="2"/></svg>
+                  </div>
+                </div>
+                <button class="btn-whatsapp" type="button" data-action="wa-add">Agregar a WhatsApp</button>
+              </article>
+            </div>
+
+            <!-- Aviso de una línea con ícono de información sobre el botón inferior -->
+            <div class="paquetes-footer">
+              <div class="aviso-linea" role="status">
+                <span class="aviso-info" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                </span>
+                <span>3 stickers creados · 1 tramo se acortó a 3 s</span>
+              </div>
+              <button class="cta-primary" type="button" data-action="gallery">Elegir de la galería</button>
+            </div>
+
+            <div class="proto-toast" data-role="toast"></div>
+
+            <div class="gesture-bar" aria-hidden="true">
+              <span class="gesture-pill"></span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    (function () {
+      const MIN_DUR = 1.0;
+      const MAX_DUR = 5.0;
+      const STEP = 0.5;
+      const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      function fmtClock(sec) {
+        const s = Math.max(0, sec);
+        const mins = Math.floor(s / 60);
+        const rem = s - mins * 60;
+        const whole = Math.floor(rem);
+        const frac = Math.round((rem - whole) * 10);
+        if (frac === 0) return `${mins}:${String(whole).padStart(2, '0')}`;
+        if (frac === 10) return `${mins}:${String(whole + 1).padStart(2, '0')}`;
+        return `${mins}:${String(whole).padStart(2, '0')},${frac}`;
+      }
+
+      function fmtDur(sec) {
+        return sec.toFixed(1).replace('.', ',') + ' s';
+      }
+
+      function clamp(val, lo, hi) {
+        return Math.min(hi, Math.max(lo, val));
+      }
+
+      function roundHalf(val) {
+        return Math.round(val * 2) / 2;
+      }
+
+      function showToast(root, text) {
+        const el = root.querySelector('[data-role="toast"]');
+        if (!el) return;
+        el.textContent = text;
+        el.classList.add('is-visible');
+        clearTimeout(el._timer);
+        el._timer = setTimeout(() => el.classList.remove('is-visible'), 2200);
+      }
+
+      // Inicializar cada Selector de tramo (Pantalla 1 y Pantalla 2)
+      const selectors = [];
+      document.querySelectorAll('[data-selector]').forEach((root) => {
+        const kind = root.dataset.selector;
+        const duration = parseFloat(root.dataset.duration);
+        const viewSpan = Math.min(duration, parseFloat(root.dataset.viewSpan));
+
+        const state = {
+          kind,
+          duration,
+          viewSpan,
+          viewStart: parseFloat(root.dataset.viewStart),
+          start: parseFloat(root.dataset.start),
+          end: parseFloat(root.dataset.end),
+          target: 'window', // 'start' | 'window' | 'end'
+          playing: !reducedMotion,
+          playPos: parseFloat(root.dataset.start) + (kind === 'solo' ? 1.4 : 1.2),
+        };
+
+        const els = {
+          stage: root.querySelector('[data-role="stage"]'),
+          playClock: root.querySelector('[data-role="play-clock"]'),
+          readout: root.querySelector('[data-role="readout"]'),
+          ovView: root.querySelector('[data-role="ov-view"]'),
+          ovWin: root.querySelector('[data-role="ov-win"]'),
+          tray: root.querySelector('[data-role="ruler-tray"]'),
+          scale: root.querySelector('[data-role="ruler-scale"]'),
+          lane: root.querySelector('[data-role="ruler-lane"]'),
+          win: root.querySelector('[data-role="window"]'),
+          hStart: root.querySelector('[data-role="handle-start"]'),
+          hEnd: root.querySelector('[data-role="handle-end"]'),
+          playhead: root.querySelector('[data-role="playhead"]'),
+          nudgeMinus: root.querySelector('[data-nudge="-0.5"]'),
+          nudgePlus: root.querySelector('[data-nudge="0.5"]'),
+          segs: Array.from(root.querySelectorAll('[data-target]')),
+        };
+
+        function ensureWindowVisible() {
+          const margin = 1.0;
+          if (state.start < state.viewStart + margin) {
+            state.viewStart = clamp(state.start - margin, 0, state.duration - state.viewSpan);
+          }
+          if (state.end > state.viewStart + state.viewSpan - margin) {
+            state.viewStart = clamp(state.end + margin - state.viewSpan, 0, state.duration - state.viewSpan);
+          }
+        }
+
+        function renderTicks() {
+          els.scale.innerHTML = '';
+          els.lane.querySelectorAll('.lane-grid-line').forEach((n) => n.remove());
+
+          const firstHalf = Math.ceil(state.viewStart * 2) / 2;
+          const lastHalf = Math.floor((state.viewStart + state.viewSpan) * 2) / 2;
+
+          for (let t = firstHalf; t <= lastHalf + 0.001; t = Math.round((t + 0.5) * 10) / 10) {
+            const pct = ((t - state.viewStart) / state.viewSpan) * 100;
+            if (pct < -0.5 || pct > 100.5) continue;
+
+            const isWhole = Math.abs(t - Math.round(t)) < 0.01;
+            const wholeSec = Math.round(t);
+            const isMajor = isWhole && (wholeSec % 2 === 0);
+
+            const tick = document.createElement('span');
+            tick.className = 'tick ' + (isMajor ? 'major' : isWhole ? 'sec' : 'half');
+            tick.style.left = pct + '%';
+            els.scale.appendChild(tick);
+
+            if (isMajor && pct >= -0.5 && pct <= 100.5) {
+              const lbl = document.createElement('span');
+              lbl.className = 'tick-label';
+              lbl.style.left = pct + '%';
+              if (pct <= 4) lbl.style.transform = 'translateX(-15%)';
+              else if (pct >= 96) lbl.style.transform = 'translateX(-85%)';
+              lbl.textContent = fmtClock(wholeSec);
+              els.scale.appendChild(lbl);
+            }
+
+            if (isWhole && pct > 0 && pct < 100) {
+              const gl = document.createElement('span');
+              gl.className = 'lane-grid-line';
+              gl.style.left = pct + '%';
+              els.lane.insertBefore(gl, els.win);
+            }
+          }
+
+          els.tray.classList.toggle('has-left', state.viewStart > 0.05);
+          els.tray.classList.toggle('has-right', state.viewStart + state.viewSpan < state.duration - 0.05);
+        }
+
+        function updateDisabledNudges() {
+          const dur = state.end - state.start;
+          let canMinus = true;
+          let canPlus = true;
+          if (state.target === 'window') {
+            canMinus = state.start > 0.01;
+            canPlus = state.end < state.duration - 0.01;
+          } else if (state.target === 'start') {
+            canMinus = state.start > 0.01 && dur < MAX_DUR - 0.01;
+            canPlus = dur > MIN_DUR + 0.01;
+          } else if (state.target === 'end') {
+            canMinus = dur > MIN_DUR + 0.01;
+            canPlus = state.end < state.duration - 0.01 && dur < MAX_DUR - 0.01;
+          }
+          els.nudgeMinus.disabled = !canMinus;
+          els.nudgePlus.disabled = !canPlus;
+        }
+
+        function setTarget(next) {
+          state.target = next;
+          els.segs.forEach((btn) => {
+            const active = btn.dataset.target === next;
+            btn.classList.toggle('is-active', active);
+            btn.setAttribute('aria-selected', String(active));
+          });
+          els.hStart.classList.toggle('is-active', next === 'start');
+          els.hEnd.classList.toggle('is-active', next === 'end');
+          updateDisabledNudges();
+        }
+
+        function renderGeometry() {
+          const startPct = ((state.start - state.viewStart) / state.viewSpan) * 100;
+          const endPct = ((state.end - state.viewStart) / state.viewSpan) * 100;
+          const dur = Math.round((state.end - state.start) * 10) / 10;
+
+          els.win.style.left = startPct + '%';
+          els.win.style.width = Math.max(0, endPct - startPct) + '%';
+          els.win.classList.toggle('is-compact', dur < 2.2);
+          els.win.classList.toggle('is-tight', dur < 1.3);
+
+          els.hStart.style.left = startPct + '%';
+          els.hEnd.style.left = endPct + '%';
+
+          els.readout.innerHTML = `${fmtClock(state.start)} – ${fmtClock(state.end)} · <span class="readout-duration">${fmtDur(dur)}</span>`;
+
+          els.ovView.style.left = (state.viewStart / state.duration) * 100 + '%';
+          els.ovView.style.width = (state.viewSpan / state.duration) * 100 + '%';
+          els.ovWin.style.left = (state.start / state.duration) * 100 + '%';
+          els.ovWin.style.width = (dur / state.duration) * 100 + '%';
+
+          state.playPos = clamp(state.playPos, state.start, state.end);
+          renderPlayhead();
+          updateDisabledNudges();
+        }
+
+        function renderPlayhead() {
+          const pct = ((state.playPos - state.viewStart) / state.viewSpan) * 100;
+          els.playhead.style.left = pct + '%';
+          els.playClock.textContent = fmtClock(state.playPos);
+
+          const t = state.playPos;
+          if (state.kind === 'solo') {
+            const carpincho = root.querySelector('[data-anim="carpincho"]');
+            const cloud = root.querySelector('[data-anim="cloud1"]');
+            const steam1 = root.querySelector('[data-anim="steam1"]');
+            const steam2 = root.querySelector('[data-anim="steam2"]');
+            const bob = Math.sin(t * 2.8) * 2.4;
+            if (carpincho) carpincho.setAttribute('transform', `translate(116, ${(78 + bob).toFixed(1)})`);
+            if (cloud) cloud.setAttribute('transform', `translate(${((t * 8) % 140 - 20).toFixed(1)}, 0)`);
+            if (steam1) steam1.setAttribute('transform', `translate(0, ${(-(t * 5 % 6)).toFixed(1)})`);
+            if (steam2) steam2.setAttribute('transform', `translate(0, ${(-((t * 5 + 3) % 6)).toFixed(1)})`);
+          } else {
+            const dog = root.querySelector('[data-anim="dog"]');
+            const shadow = root.querySelector('[data-anim="shadow2"]');
+            const ball = root.querySelector('[data-anim="ball2"]');
+            const stripe = root.querySelector('[data-anim="ball2-stripe"]');
+            const jump = Math.abs(Math.sin(t * 4.2)) * 18;
+            const tilt = Math.sin(t * 4.2) * 5;
+            if (dog) dog.setAttribute('transform', `translate(68, ${(138 - jump).toFixed(1)}) rotate(${tilt.toFixed(1)})`);
+            if (shadow) shadow.setAttribute('rx', (30 - jump * 0.45).toFixed(1));
+            const bJump = Math.abs(Math.cos(t * 4.2)) * 22;
+            if (ball) ball.setAttribute('cy', (168 - bJump).toFixed(1));
+            if (stripe) stripe.setAttribute('transform', `translate(0, ${(12 - bJump).toFixed(1)})`);
+          }
+        }
+
+        function applyNudge(delta) {
+          if (state.target === 'window') {
+            const dur = Math.round((state.end - state.start) * 10) / 10;
+            const nextStart = clamp(roundHalf(state.start + delta), 0, state.duration - dur);
+            state.start = nextStart;
+            state.end = Math.round((nextStart + dur) * 10) / 10;
+          } else if (state.target === 'start') {
+            const minS = Math.max(0, state.end - MAX_DUR);
+            const maxS = state.end - MIN_DUR;
+            state.start = clamp(roundHalf(state.start + delta), minS, maxS);
+          } else if (state.target === 'end') {
+            const minE = state.start + MIN_DUR;
+            const maxE = Math.min(state.duration, state.start + MAX_DUR);
+            state.end = clamp(roundHalf(state.end + delta), minE, maxE);
+          }
+          ensureWindowVisible();
+          renderTicks();
+          renderGeometry();
+        }
+
+        // Arrastre con puntero (bloque central mueve el tramo entero; manijas ajustan bordes)
+        function bindDrag(el, mode) {
+          el.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            try {
+              if (el.setPointerCapture) el.setPointerCapture(e.pointerId);
+            } catch (_) {}
+            setTarget(mode);
+            if (mode === 'window') els.win.classList.add('is-dragging');
+
+            const startX = e.clientX;
+            const initStart = state.start;
+            const initEnd = state.end;
+            const initDur = Math.round((initEnd - initStart) * 10) / 10;
+            const laneWidth = els.lane.getBoundingClientRect().width || 280;
+            const secPerPx = state.viewSpan / laneWidth;
+
+            function onMove(ev) {
+              const dt = (ev.clientX - startX) * secPerPx;
+              if (mode === 'window') {
+                const s = clamp(Math.round((initStart + dt) * 10) / 10, 0, state.duration - initDur);
+                state.start = s;
+                state.end = Math.round((s + initDur) * 10) / 10;
+              } else if (mode === 'start') {
+                const minS = Math.max(0, initEnd - MAX_DUR);
+                const maxS = initEnd - MIN_DUR;
+                state.start = clamp(Math.round((initStart + dt) * 10) / 10, minS, maxS);
+              } else if (mode === 'end') {
+                const minE = initStart + MIN_DUR;
+                const maxE = Math.min(state.duration, initStart + MAX_DUR);
+                state.end = clamp(Math.round((initEnd + dt) * 10) / 10, minE, maxE);
+              }
+              ensureWindowVisible();
+              renderTicks();
+              renderGeometry();
+            }
+
+            function onUp() {
+              els.win.classList.remove('is-dragging');
+              window.removeEventListener('pointermove', onMove);
+              window.removeEventListener('pointerup', onUp);
+              window.removeEventListener('pointercancel', onUp);
+            }
+
+            window.addEventListener('pointermove', onMove);
+            window.addEventListener('pointerup', onUp);
+            window.addEventListener('pointercancel', onUp);
+          });
+
+          el.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+              e.preventDefault();
+              setTarget(mode);
+              applyNudge(e.key === 'ArrowRight' ? STEP : -STEP);
+            }
+          });
+        }
+
+        bindDrag(els.win, 'window');
+        bindDrag(els.hStart, 'start');
+        bindDrag(els.hEnd, 'end');
+
+        els.nudgeMinus.addEventListener('click', () => applyNudge(-STEP));
+        els.nudgePlus.addEventListener('click', () => applyNudge(STEP));
+        els.segs.forEach((btn) => btn.addEventListener('click', () => setTarget(btn.dataset.target)));
+
+        function togglePlay() {
+          state.playing = !state.playing;
+          els.stage.classList.toggle('is-paused', !state.playing);
+        }
+        els.stage.addEventListener('click', togglePlay);
+        els.stage.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            togglePlay();
+          }
+        });
+
+        root.querySelectorAll('[data-action]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const act = btn.dataset.action;
+            const rango = `${fmtClock(state.start)}–${fmtClock(state.end)}`;
+            if (act === 'create') showToast(root, `Creando sticker con el tramo ${rango}…`);
+            if (act === 'next') showToast(root, `Tramo ${rango} guardado · Pasando a 3 de 3`);
+            if (act === 'auto-rest') showToast(root, 'Usando primeros 5 s para los restantes');
+            if (act === 'cancel-tanda') showToast(root, 'Tanda cancelada sin crear stickers');
+            if (act === 'back') showToast(root, 'Volviendo a los paquetes');
+          });
+        });
+
+        renderTicks();
+        setTarget('window');
+        renderGeometry();
+        selectors.push({ state, renderPlayhead });
+      });
+
+      const p3 = document.querySelector('[data-screen="paquetes"]');
+      if (p3) {
+        p3.querySelectorAll('[data-action]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            if (btn.dataset.action === 'wa-add') showToast(p3, 'Abriendo WhatsApp para agregar «Mis stickers»');
+            if (btn.dataset.action === 'gallery') showToast(p3, 'Abriendo galería de archivos de origen');
+          });
+        });
+      }
+
+      if (!reducedMotion) {
+        let last = performance.now();
+        function frame(now) {
+          const dt = Math.min(0.1, (now - last) / 1000);
+          last = now;
+          for (const item of selectors) {
+            if (!item.state.playing) continue;
+            item.state.playPos += dt;
+            if (item.state.playPos > item.state.end) {
+              item.state.playPos = item.state.start;
+            }
+            item.renderPlayhead();
+          }
+          requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+      }
+    })();
+  </script>
+</body>
+</html>

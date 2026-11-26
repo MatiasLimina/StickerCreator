@@ -40,23 +40,33 @@ private val PASOS = listOf(
 
 private const val NO_SOPORTADO = "El archivo no es un GIF o video soportado"
 
-/** El tramo leído del archivo de origen, ya encajado en 512×512. */
-private class Tramo(val cuadros: List<Bitmap>, val duracionMs: Long)
+/** El tramo que eligió el usuario en un video, en ms desde el principio. */
+data class TramoElegido(val inicioMs: Long, val finMs: Long)
+
+/**
+ * El tramo leído del archivo de origen, ya encajado en 512×512. `duracionMs`
+ * sale de los cuadros leídos; `pedidoMs` es lo que se pidió leer, que es lo que
+ * se informa si no hubo que acortar (los cuadros redondean y un video puede
+ * declarar más duración que la que tiene, y eso no es acortar).
+ */
+private class Tramo(val cuadros: List<Bitmap>, val duracionMs: Long, val pedidoMs: Long)
 
 private class Descartado(val motivo: String) : Exception(motivo)
 
 /**
  * Convierte un GIF o video en un sticker animado de WhatsApp: WebP animado de
- * 512×512 encajado, sin audio, del tramo de los primeros 5 s, de hasta 500 KB.
- * Para entrar en el peso baja la calidad y los cuadros por segundo; si no
- * alcanza, acorta el tramo (5 → 4 → 3 → 2 → 1 s); si ni así entra, lo descarta.
+ * 512×512 encajado, sin audio, de hasta 500 KB, del tramo elegido de un video
+ * o, si no hay (o es un GIF), de los primeros 5 s. Para entrar en el peso baja
+ * la calidad y los cuadros por segundo; si no alcanza, acorta el tramo desde el
+ * final, conservando el inicio (5 → 4 → 3 → 2 → 1 s); si ni así entra, lo
+ * descarta.
  * No depende de Expo, así se prueba directo en el teléfono.
  */
 class ConversorAnimado(private val contexto: Context) {
 
-  fun convertir(origen: Uri, destino: File): Resultado {
+  fun convertir(origen: Uri, destino: File, elegido: TramoElegido? = null): Resultado {
     val tramo = try {
-      leerTramo(origen)
+      leerTramo(origen, elegido)
     } catch (e: Descartado) {
       return Resultado.Descarte(e.motivo)
     }
@@ -66,7 +76,10 @@ class ConversorAnimado(private val contexto: Context) {
         // libwebp junta los cuadros iguales: sin movimiento sale un WebP
         // estático, y WhatsApp rechaza el paquete animado que lo contenga.
         if (!esAnimado(bytes)) return Resultado.Descarte("El archivo no tiene movimiento")
-        return guardar(bytes, destino)
+        return when (val guardado = guardar(bytes, destino)) {
+          is Resultado.Listo -> guardado.copy(duracionMs = if (duracionMs == tramo.duracionMs) tramo.pedidoMs else duracionMs)
+          else -> guardado
+        }
       }
       return Resultado.Descarte("El sticker animado no entra en 500 KB ni acortando el tramo a 1 s")
     } finally {
@@ -112,7 +125,26 @@ class ConversorAnimado(private val contexto: Context) {
     return bytes
   }
 
-  private fun leerTramo(origen: Uri): Tramo = if (esGif(origen)) leerGif(origen) else leerVideo(origen)
+  /**
+   * La duración de un video en ms, leída de sus metadatos sin leer cuadros, o
+   * null si no se puede saber (no es un video, o no la declara).
+   */
+  fun duracionDeVideo(origen: Uri): Long? {
+    val lector = MediaMetadataRetriever()
+    try {
+      lector.setDataSource(contexto, origen)
+      if (lector.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_VIDEO) != "yes") return null
+      return lector.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()?.takeIf { it > 0 }
+    } catch (e: Exception) {
+      return null
+    } finally {
+      lector.release()
+    }
+  }
+
+  /** Un GIF usa siempre sus primeros 5 s: el tramo elegido es solo para videos. */
+  private fun leerTramo(origen: Uri, elegido: TramoElegido?): Tramo =
+    if (esGif(origen)) leerGif(origen) else leerVideo(origen, elegido)
 
   private fun esGif(origen: Uri): Boolean {
     val cabecera = try {
@@ -144,13 +176,13 @@ class ConversorAnimado(private val contexto: Context) {
         gif.draw(canvas, 0f, 0f)
         encajar(lienzo, LADO_STICKER)
       }
-      return Tramo(cuadros, duracionMs)
+      return Tramo(cuadros, duracionMs, duracionMs)
     } finally {
       lienzo.recycle()
     }
   }
 
-  private fun leerVideo(origen: Uri): Tramo {
+  private fun leerVideo(origen: Uri, elegido: TramoElegido?): Tramo {
     val lector = MediaMetadataRetriever()
     try {
       try {
@@ -159,13 +191,16 @@ class ConversorAnimado(private val contexto: Context) {
         throw Descartado(NO_SOPORTADO)
       }
       val duracion = lector.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()
-      if (lector.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_VIDEO) != "yes" || duracion == null) {
+      if (lector.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_VIDEO) != "yes" || duracion == null || duracion <= 0) {
         throw Descartado(NO_SOPORTADO)
       }
       // Se lee hasta el primer cuadro que falte (la duración declarada puede
       // pasarse del último cuadro): saltear uno aceleraría el sticker.
-      val cuadros = leerCuadros(instantesMs(minOf(TRAMO_MAXIMO_MS, duracion))) { instante ->
-        cuadroDeVideo(lector, instante * 1000)?.let { cuadro ->
+      val inicioMs = elegido?.inicioMs?.coerceIn(0L, duracion) ?: 0L
+      val finMs = elegido?.finMs ?: duracion
+      val largoMs = minOf(TRAMO_MAXIMO_MS, finMs - inicioMs, duracion - inicioMs)
+      val cuadros = leerCuadros(instantesMs(largoMs)) { instante ->
+        cuadroDeVideo(lector, (inicioMs + instante) * 1000)?.let { cuadro ->
           encajar(cuadro, LADO_STICKER).also { cuadro.recycle() }
         }
       }
@@ -173,7 +208,7 @@ class ConversorAnimado(private val contexto: Context) {
         cuadros.forEach(Bitmap::recycle)
         throw Descartado("El video es demasiado corto")
       }
-      return Tramo(cuadros, cuadros.size * 1000L / FPS_LECTURA)
+      return Tramo(cuadros, cuadros.size * 1000L / FPS_LECTURA, largoMs)
     } finally {
       lector.release()
     }

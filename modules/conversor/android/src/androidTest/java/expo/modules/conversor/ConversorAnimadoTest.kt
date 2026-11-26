@@ -1,11 +1,13 @@
 package expo.modules.conversor
 
 import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.net.Uri
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -24,6 +26,8 @@ import java.nio.ByteOrder
  * - video-pesado.mp4: ruido de 72×72 ampliado, 6 s: no entra en 500 KB con 5 s.
  * - video-imposible.mp4: ruido de 512×512: no entra ni con 1 s.
  * - video-quieto.mp4: 2 s de un solo color: no tiene movimiento.
+ * - video-colores.mp4: 320×240, 10 s de testsrc2 con un recuadro arriba a la
+ *   izquierda rojo los primeros 5 s y azul los últimos 5 s.
  */
 @RunWith(AndroidJUnit4::class)
 class ConversorAnimadoTest {
@@ -107,6 +111,92 @@ class ConversorAnimadoTest {
     // Entra con el tramo entero de 5 s (75 cuadros de 66 ms). Sin audio por
     // construcción: un WebP no puede llevarlo.
     assertEquals(4950, duracion)
+  }
+
+  @Test
+  fun sinTramoUsaLosPrimeros5sEInformaLaDuracion() {
+    val resultado = conversor.convertir(muestra("video-colores.mp4"), File(carpeta, "sin-tramo.webp"))
+
+    stickerAnimado(resultado)
+    assertEquals(5000L, (resultado as Resultado.Listo).duracionMs)
+    assertEquals("rojo", colorDelRecuadro(resultado.archivo))
+  }
+
+  @Test
+  fun conTramoLosCuadrosSalenDelInicioElegido() {
+    // El recuadro cambia de rojo a azul a los 5 s: medio segundo antes sigue
+    // rojo y un segundo después ya es azul.
+    val antes = conversor.convertir(
+      muestra("video-colores.mp4"),
+      File(carpeta, "tramo-antes.webp"),
+      TramoElegido(inicioMs = 4500, finMs = 6500),
+    )
+    val despues = conversor.convertir(
+      muestra("video-colores.mp4"),
+      File(carpeta, "tramo-despues.webp"),
+      TramoElegido(inicioMs = 6000, finMs = 8500),
+    )
+
+    stickerAnimado(antes)
+    val webp = stickerAnimado(despues)
+    assertEquals("rojo", colorDelRecuadro((antes as Resultado.Listo).archivo))
+    assertEquals("azul", colorDelRecuadro((despues as Resultado.Listo).archivo))
+    // Sin acortar, informa la duración pedida.
+    assertEquals(2000L, antes.duracionMs)
+    assertEquals(2500L, despues.duracionMs)
+    assertEquals(2500.0, webp.duraciones.sum().toDouble(), 150.0)
+  }
+
+  @Test
+  fun unVideoQueTerminaAntesDeLoDeclaradoNoSeInformaComoAcortado() {
+    // El tramo llega justo hasta el final: aunque el último cuadro falte, no
+    // es un acorte por peso.
+    val resultado = conversor.convertir(
+      muestra("video-colores.mp4"),
+      File(carpeta, "hasta-el-final.webp"),
+      TramoElegido(inicioMs = 6500, finMs = 10000),
+    )
+
+    stickerAnimado(resultado)
+    assertEquals(3500L, (resultado as Resultado.Listo).duracionMs)
+  }
+
+  @Test
+  fun conTramoQueNoEntraEnElPesoAcortaDesdeElFinalEInformaLaDuracion() {
+    val resultado = conversor.convertir(
+      muestra("video-pesado.mp4"),
+      File(carpeta, "pesado-tramo.webp"),
+      TramoElegido(inicioMs = 1000, finMs = 6000),
+    )
+
+    val webp = stickerAnimado(resultado)
+    val informada = (resultado as Resultado.Listo).duracionMs!!
+    assertTrue("Informa $informada ms: tendría que haberse acortado", informada in 1000L..4000L)
+    assertEquals(informada.toDouble(), webp.duraciones.sum().toDouble(), 150.0)
+  }
+
+  @Test
+  fun laDuracionDeUnVideoSeLeeSinConvertirlo() {
+    assertEquals(12000.0, conversor.duracionDeVideo(muestra("video-12s.mp4"))!!.toDouble(), 100.0)
+  }
+
+  @Test
+  fun laDuracionDeAlgoQueNoEsUnVideoEsDesconocida() {
+    assertNull(conversor.duracionDeVideo(muestra("no-soportado.txt")))
+    assertNull(conversor.duracionDeVideo(muestra("animado.gif")))
+  }
+
+  /**
+   * El color del recuadro de video-colores.mp4 en el primer cuadro del
+   * sticker: 320×240 encajado en 512×512 queda en 512×384, 64 px más abajo.
+   */
+  private fun colorDelRecuadro(archivo: File): String {
+    val pixel = BitmapFactory.decodeFile(archivo.path).getPixel(64, 128)
+    return when {
+      Color.red(pixel) > 180 && Color.blue(pixel) < 80 -> "rojo"
+      Color.blue(pixel) > 180 && Color.red(pixel) < 80 -> "azul"
+      else -> "otro: #${Integer.toHexString(pixel)}"
+    }
   }
 
   @Test

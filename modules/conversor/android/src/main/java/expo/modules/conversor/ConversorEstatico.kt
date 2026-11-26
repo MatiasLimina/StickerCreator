@@ -12,7 +12,8 @@ import java.io.IOException
 
 /** Lo que devuelve el conversor: un archivo listo o un descarte con motivo. */
 sealed class Resultado {
-  data class Listo(val archivo: File) : Resultado()
+  /** `duracionMs`: en un sticker animado, cuánto dura el tramo que quedó (puede ser menos que el pedido). */
+  data class Listo(val archivo: File, val duracionMs: Long? = null) : Resultado()
   data class Descarte(val motivo: String) : Resultado()
 }
 
