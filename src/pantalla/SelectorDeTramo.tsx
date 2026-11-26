@@ -409,7 +409,8 @@ const NUMEROS = { fontVariant: ['tabular-nums'] } as const;
 const styles = StyleSheet.create({
   pantalla: { flex: 1, backgroundColor: FONDO },
   barraSuperior: {
-    height: 54,
+    minHeight: 54,
+    paddingVertical: 4,
     paddingLeft: 4,
     paddingRight: 16,
     flexDirection: 'row',

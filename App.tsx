@@ -60,17 +60,22 @@ function Pantalla() {
 
   // La tanda (que corre en la cola de cambios) se queda esperando acá mientras
   // el selector está abierto: lo que llegue por Compartir espera su turno.
+  // Solo vale la primera respuesta: un doble toque en «Siguiente» no tiene que
+  // cerrar el selector del video que sigue, que ya se abrió.
   const elegirTramo = useCallback<ElegirTramo>(
     (pedido) =>
-      new Promise((resolver) =>
+      new Promise((resolver) => {
+        let respondido = false;
         setSelectorAbierto({
           ...pedido,
           responder: (eleccion) => {
+            if (respondido) return;
+            respondido = true;
             setSelectorAbierto(null);
             resolver(eleccion);
           },
-        }),
-      ),
+        });
+      }),
     [],
   );
 
