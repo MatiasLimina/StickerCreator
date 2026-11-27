@@ -13,17 +13,7 @@ import {
   type Tramo,
   type Ventana,
 } from '../stickers/tramo';
-
-/** Colores de la pantalla de paquetes (diseño aprobado en docs/design/selector-de-tramo/). */
-const FONDO = '#FFFFFF';
-const SUPERFICIE = '#F2F4F7';
-const TEXTO = '#344054';
-const TEXTO_SUAVE = '#475467';
-const ACENTO = '#1570EF';
-const SELECCION = '#D1E0FF';
-const BORDE = '#E4E7EC';
-const DESTRUCTIVO = '#D92D20';
-const BORDE_CONTROL = '#D0D5DD';
+import { colores } from '../tema/tema';
 
 const LADO_VISTA_PREVIA = 312;
 /** Lo que ocupa la línea «Sin audio · Loop» debajo del cuadro, con su margen y el de la zona. */
@@ -230,7 +220,7 @@ const Damero = memo(function Damero() {
           {Array.from({ length: lado }, (_, col) => (
             <View
               key={col}
-              style={{ width: CASILLA, height: CASILLA, backgroundColor: (fila + col) % 2 ? SUPERFICIE : FONDO }}
+              style={{ width: CASILLA, height: CASILLA, backgroundColor: (fila + col) % 2 ? colores.cabecera : colores.tarjeta }}
             />
           ))}
         </View>
@@ -370,7 +360,7 @@ function Regla({
 
 /** El agarre central `‹ ||| ›`, que se achica cuando el tramo es angosto. */
 function Agarradera({ ancho, activa }: { ancho: number; activa: boolean }) {
-  const color = activa ? FONDO : ACENTO;
+  const color = activa ? colores.carmesiTexto : colores.carmesiVivo;
   const barras = (
     <View style={styles.barras}>
       {[0, 1, 2].map((i) => (
@@ -417,7 +407,7 @@ function porcion({ inicio, fin }: { inicio: number; fin: number }, duracionVideo
 const NUMEROS = { fontVariant: ['tabular-nums'] } as const;
 
 const styles = StyleSheet.create({
-  pantalla: { flex: 1, backgroundColor: FONDO },
+  pantalla: { flex: 1, backgroundColor: colores.lienzo },
   barraSuperior: {
     minHeight: 54,
     paddingVertical: 4,
@@ -426,45 +416,45 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: SUPERFICIE,
+    borderBottomColor: colores.borde,
   },
   botonVolver: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
-  flecha: { fontSize: 22, color: TEXTO },
+  flecha: { fontSize: 22, color: colores.textoPrincipal },
   pilaTitulo: { flex: 1, marginLeft: 4, gap: 2 },
-  titulo: { fontSize: 18, fontWeight: '600', color: TEXTO },
-  avisoTanda: { fontSize: 12, fontWeight: '600', color: DESTRUCTIVO },
+  titulo: { fontSize: 18, fontWeight: '600', color: colores.textoPrincipal },
+  avisoTanda: { fontSize: 12, fontWeight: '600', color: colores.errorAcento },
   posicion: {
     paddingVertical: 4,
     paddingHorizontal: 10,
     borderRadius: 8,
-    backgroundColor: SELECCION,
+    backgroundColor: colores.carmesiTinte,
     fontSize: 13,
     fontWeight: '600',
-    color: TEXTO,
+    color: colores.textoPrincipal,
     ...NUMEROS,
   },
-  meta: { fontSize: 12, fontWeight: '500', color: TEXTO_SUAVE, ...NUMEROS },
+  meta: { fontSize: 12, fontWeight: '500', color: colores.textoAtenuado, ...NUMEROS },
 
   zonaVistaPrevia: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 6 },
   cuadro: {
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: BORDE,
+    borderColor: colores.borde,
     overflow: 'hidden',
   },
   filaDamero: { flexDirection: 'row' },
   debajoDelCuadro: { marginTop: 6, flexDirection: 'row', justifyContent: 'space-between' },
 
-  tarjeta: { marginHorizontal: 16, padding: 12, borderRadius: 12, backgroundColor: SUPERFICIE, gap: 9 },
+  tarjeta: { marginHorizontal: 16, padding: 12, borderRadius: 12, backgroundColor: colores.tarjeta, gap: 9 },
   lectura: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
-  lecturaPrincipal: { fontSize: 18, fontWeight: '600', color: TEXTO, ...NUMEROS },
-  lecturaDuracion: { color: ACENTO, fontWeight: '700' },
+  lecturaPrincipal: { fontSize: 18, fontWeight: '600', color: colores.textoPrincipal, ...NUMEROS },
+  lecturaDuracion: { color: colores.carmesiVivo, fontWeight: '700' },
 
   filaPanorama: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 9 },
-  pistaPanorama: { flex: 1, height: 4, borderRadius: 2, backgroundColor: '#47546730', overflow: 'hidden' },
-  ventanaPanorama: { position: 'absolute', top: 0, bottom: 0, backgroundColor: SELECCION, borderRadius: 2 },
-  tramoPanorama: { position: 'absolute', top: 0, bottom: 0, backgroundColor: ACENTO, borderRadius: 2 },
-  tiempoPanorama: { fontSize: 11, color: TEXTO_SUAVE, minWidth: 28, ...NUMEROS },
+  pistaPanorama: { flex: 1, height: 4, borderRadius: 2, backgroundColor: colores.borde, overflow: 'hidden' },
+  ventanaPanorama: { position: 'absolute', top: 0, bottom: 0, backgroundColor: colores.avanceBorde, borderRadius: 2 },
+  tramoPanorama: { position: 'absolute', top: 0, bottom: 0, backgroundColor: colores.carmesiVivo, borderRadius: 2 },
+  tiempoPanorama: { fontSize: 11, color: colores.textoAtenuado, minWidth: 28, ...NUMEROS },
   tiempoPanoramaFin: { textAlign: 'right' },
 
   bandeja: {
@@ -472,49 +462,49 @@ const styles = StyleSheet.create({
     marginHorizontal: -12,
     paddingTop: 6,
     paddingBottom: 8,
-    backgroundColor: FONDO,
+    backgroundColor: colores.lienzo,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: BORDE,
+    borderColor: colores.borde,
   },
   escala: { height: 19, marginBottom: 3 },
   marca: { position: 'absolute', bottom: 0, width: 1 },
-  medio: { height: 4, backgroundColor: '#47546738' },
-  segundo: { height: 8, backgroundColor: '#4754677A' },
-  mayor: { height: 11, backgroundColor: TEXTO_SUAVE },
-  etiquetaMarca: { position: 'absolute', top: 0, width: 40, textAlign: 'center', fontSize: 11, color: TEXTO_SUAVE, ...NUMEROS },
-  carril: { height: 50, backgroundColor: SUPERFICIE, borderRadius: 6, borderWidth: 1, borderColor: BORDE },
-  lineaCarril: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: '#FFFFFFD9' },
+  medio: { height: 4, backgroundColor: colores.marcaMedio },
+  segundo: { height: 8, backgroundColor: colores.marcaSegundo },
+  mayor: { height: 11, backgroundColor: colores.textoAtenuado },
+  etiquetaMarca: { position: 'absolute', top: 0, width: 40, textAlign: 'center', fontSize: 11, color: colores.textoAtenuado, ...NUMEROS },
+  carril: { height: 50, backgroundColor: colores.cabecera, borderRadius: 6, borderWidth: 1, borderColor: colores.borde },
+  lineaCarril: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: colores.borde },
 
   capaTramo: { position: 'absolute', bottom: 7, height: 52, flexDirection: 'row' },
   bloque: {
     flex: 1,
-    backgroundColor: SELECCION,
+    backgroundColor: colores.carmesiTinte,
     borderTopWidth: 2,
     borderBottomWidth: 2,
-    borderColor: ACENTO,
+    borderColor: colores.carmesiVivo,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  bloqueArrastrado: { borderColor: '#0E5BD0' },
-  tapa: { width: 16, backgroundColor: ACENTO, alignItems: 'center', justifyContent: 'center' },
+  bloqueArrastrado: { borderColor: colores.textoSecundario },
+  tapa: { width: 16, backgroundColor: colores.carmesi, alignItems: 'center', justifyContent: 'center' },
   tapaInicio: { borderTopLeftRadius: 4, borderBottomLeftRadius: 4 },
   tapaFin: { borderTopRightRadius: 4, borderBottomRightRadius: 4 },
-  tapaActiva: { backgroundColor: '#0E5BD0' },
-  textoTapa: { color: FONDO, fontSize: 16, fontWeight: '700' },
+  tapaActiva: { backgroundColor: colores.carmesiClaro },
+  textoTapa: { color: colores.carmesiTexto, fontSize: 16, fontWeight: '700' },
   agarradera: {
     height: 26,
     paddingHorizontal: 7,
     borderRadius: 13,
     borderWidth: 1,
-    borderColor: '#1570EF73',
-    backgroundColor: FONDO,
+    borderColor: colores.carmesiBorde,
+    backgroundColor: colores.lienzo,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
-  agarraderaActiva: { backgroundColor: ACENTO, borderColor: ACENTO },
+  agarraderaActiva: { backgroundColor: colores.carmesi, borderColor: colores.carmesiBorde },
   barras: { flexDirection: 'row', gap: 2.5 },
   barra: { width: 2, height: 11, borderRadius: 1 },
   flechaAgarre: { fontSize: 14, fontWeight: '700' },
@@ -525,13 +515,13 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: BORDE_CONTROL,
-    backgroundColor: FONDO,
+    borderColor: colores.bordeControl,
+    backgroundColor: colores.lienzo,
     alignItems: 'center',
     justifyContent: 'center',
   },
   botonFinoInactivo: { opacity: 0.38 },
-  textoFino: { fontSize: 14, fontWeight: '600', color: TEXTO, ...NUMEROS },
+  textoFino: { fontSize: 14, fontWeight: '600', color: colores.textoPrincipal, ...NUMEROS },
 
   zonaPulgar: { padding: 16, gap: 8 },
   secundario: {
@@ -539,12 +529,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: BORDE_CONTROL,
-    backgroundColor: FONDO,
+    borderColor: colores.bordeControl,
+    backgroundColor: colores.lienzo,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  textoSecundario: { fontSize: 14, fontWeight: '600', color: TEXTO },
-  crear: { padding: 16, borderRadius: 12, backgroundColor: ACENTO, alignItems: 'center' },
-  textoCrear: { color: FONDO, fontSize: 16, fontWeight: '600' },
+  textoSecundario: { fontSize: 14, fontWeight: '600', color: colores.textoPrincipal },
+  crear: {
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: colores.carmesi,
+    borderWidth: 1,
+    borderColor: colores.carmesiBorde,
+    alignItems: 'center',
+  },
+  textoCrear: { color: colores.carmesiTexto, fontSize: 16, fontWeight: '600' },
 });
