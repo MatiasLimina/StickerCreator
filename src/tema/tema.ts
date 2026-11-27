@@ -53,6 +53,11 @@ export const colores = {
   avisoInfoAcento: '#E8C6C4',
   // Estado
   verdeEstado: '#2ED66B',
+  // Cielo y banner (#37)
+  plata: '#E2C4C1',
+  estrella: '#F5E9E7',
+  carmesiCielo: '#C81E2B',
+  bordeBanner: 'rgba(226, 200, 197, 0.16)',
   // Botón principal en curso (#22): fondo, borde, texto, pista y luz de la barra
   avanceFondo: '#271215',
   avanceBorde: '#6E222E',

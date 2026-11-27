@@ -282,9 +282,11 @@ function Pantalla() {
   return (
     // Android dibuja de borde a borde: dejamos lugar para la barra de estado
     // arriba y la de navegación abajo.
-    <SafeAreaView style={styles.container}>
+    // El cielo va fuera del área segura: cubre también las barras del sistema.
+    <View style={styles.raiz}>
       {/* Capa fija detrás de todo: no se mueve con el scroll de la lista. */}
       <Cielo />
+      <SafeAreaView style={styles.container}>
       {error && <Text style={styles.error}>{error}</Text>}
       {paquetes && (
         <PantallaPaquetes
@@ -338,14 +340,16 @@ function Pantalla() {
         />
       )}
       <StatusBar style="light" />
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const margenPie = { marginHorizontal: 16, marginBottom: 16 } as const;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colores.lienzo },
+  raiz: { flex: 1, backgroundColor: colores.lienzo },
+  container: { flex: 1 },
   error: { padding: 16, color: colores.errorTexto },
   aviso: {
     flexDirection: 'row',

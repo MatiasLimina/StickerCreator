@@ -19,8 +19,8 @@ const CONSTELACIONES: readonly Constelacion[] = [
   { estrellas: [[14, 360, 1.2, 0.34], [376, 432, 1.3, 0.36], [18, 692, 1.1, 0.3], [374, 706, 1.2, 0.32]] },
 ];
 
-const PLATA = '#E2C4C1';
-const ESTRELLA = '#F5E9E7';
+const PLATA = colores.plata;
+const ESTRELLA = colores.estrella;
 
 /**
  * El cielo de fondo: viñeta radial carbón-carmesí y constelaciones tenues.
@@ -46,7 +46,7 @@ function CieloSinMemo() {
       {/* Más grande que el lienzo: `slice` recorta y la viñeta tiene que cubrir lo que sobra. */}
       <Rect x={-400} y={-100} width={1190} height={2000} fill="url(#cielo-vineta)" />
       <Ellipse cx="195" cy="88" rx="164" ry="84" fill="none" stroke={PLATA} strokeOpacity="0.14" strokeWidth="0.8" strokeDasharray="3 5" />
-      <Ellipse cx="195" cy="88" rx="124" ry="62" fill="none" stroke="#C81E2B" strokeOpacity="0.2" strokeWidth="0.8" />
+      <Ellipse cx="195" cy="88" rx="124" ry="62" fill="none" stroke={colores.carmesiCielo} strokeOpacity="0.2" strokeWidth="0.8" />
       <Path d="M 18,492 Q 195,470 372,492" fill="none" stroke={PLATA} strokeOpacity="0.14" strokeWidth="0.75" strokeDasharray="2 4" />
       <Path d="M 24,620 Q 195,596 366,620" fill="none" stroke={PLATA} strokeOpacity="0.16" strokeWidth="0.8" strokeDasharray="2 4.5" />
       {CONSTELACIONES.map((c, i) => (
