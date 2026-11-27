@@ -1,0 +1,150 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240" role="img" aria-label="Emblema completo de Evernight">
+  <defs>
+    <!-- Resplandor carmesí concéntrico de fondo (carbón-carmesí puro, cero violeta) -->
+    <radialGradient id="ev-halo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#C81E2B" stop-opacity="0.50" />
+      <stop offset="38%" stop-color="#8F111B" stop-opacity="0.26" />
+      <stop offset="70%" stop-color="#3A070A" stop-opacity="0.12" />
+      <stop offset="100%" stop-color="#070505" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Luna: mitad izquierda en sombra de eclipse -->
+    <linearGradient id="ev-moon-shadow" x1="0%" y1="20%" x2="85%" y2="85%">
+      <stop offset="0%" stop-color="#630E15" />
+      <stop offset="40%" stop-color="#38060A" />
+      <stop offset="100%" stop-color="#1D0305" />
+    </linearGradient>
+
+    <!-- Luna: medialuna derecha en carmesí luminoso -->
+    <radialGradient id="ev-moon-bright" cx="68%" cy="62%" r="58%">
+      <stop offset="0%" stop-color="#FF7878" />
+      <stop offset="30%" stop-color="#F22738" />
+      <stop offset="76%" stop-color="#C41424" />
+      <stop offset="100%" stop-color="#8C0D18" />
+    </radialGradient>
+
+    <!-- Plata rosada (eje plata -> rosa empolvado, cero violeta) -->
+    <linearGradient id="ev-silver-rose" x1="12%" y1="8%" x2="88%" y2="92%">
+      <stop offset="0%" stop-color="#FFF7F5" />
+      <stop offset="34%" stop-color="#F2DAD7" />
+      <stop offset="70%" stop-color="#D4B2B1" />
+      <stop offset="100%" stop-color="#AD8988" />
+    </linearGradient>
+
+    <!-- Brillo interior de las estrellas -->
+    <linearGradient id="ev-star-core" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="55%" stop-color="#F7E4E1" />
+      <stop offset="100%" stop-color="#CCA7A5" />
+    </linearGradient>
+
+    <clipPath id="ev-moon-clip">
+      <circle cx="120" cy="120" r="36" />
+    </clipPath>
+
+    <!-- Estrella chica reutilizable (14.4 x 9.2) -->
+    <g id="ev-small-star">
+      <path d="M 0.00,-7.20 C 0.50,-1.89 1.21,-0.78 4.60,0.00 C 1.21,0.78 0.50,1.89 0.00,7.20 C -0.50,1.89 -1.21,0.78 -4.60,0.00 C -1.21,-0.78 -0.50,-1.89 0.00,-7.20 Z" fill="url(#ev-silver-rose)" />
+      <path d="M 0.00,-5.76 L 0.55,0.00 L 0.00,5.76 L -0.55,0.00 Z M -3.68,0.00 L 0.00,-0.55 L 3.68,0.00 L 0.00,0.55 Z" fill="#FFF7F5" fill-opacity="0.80" />
+    </g>
+
+    <!-- Micro destello orbital -->
+    <path id="ev-micro-star" d="M 0.00,-3.40 C 0.38,-0.92 0.92,-0.38 3.40,0.00 C 0.92,0.38 0.38,0.92 0.00,3.40 C -0.38,0.92 -0.92,0.38 -3.40,0.00 C -0.92,-0.38 -0.38,-0.92 0.00,-3.40 Z" fill="#F5E4E2" />
+  </defs>
+
+  <!-- Halo y anillos ceremoniales concéntricos -->
+  <circle cx="120" cy="120" r="114" fill="url(#ev-halo)" />
+  <circle cx="120" cy="120" r="102" fill="none" stroke="#6E1118" stroke-width="0.8" stroke-opacity="0.38" />
+  <circle cx="120" cy="120" r="91" fill="none" stroke="#8C1620" stroke-width="0.65" stroke-opacity="0.30" />
+  <circle cx="120" cy="120" r="78" fill="none" stroke="#5A0D13" stroke-width="1.1" stroke-opacity="0.40" />
+
+  <!-- Geometría ritual sutil de fondo (cuadrado y arcos cardinales) -->
+  <g stroke="#621016" stroke-opacity="0.34" fill="none" stroke-width="1.05">
+    <rect x="64" y="64" width="112" height="112" />
+    <path d="M 103,64 A 17,17 0 0 1 137,64" />
+    <path d="M 103,176 A 17,17 0 0 0 137,176" />
+    <path d="M 64,103 A 17,17 0 0 1 64,137" />
+    <path d="M 176,103 A 17,17 0 0 0 176,137" />
+  </g>
+
+  <!-- Trazos punteados orbitales que unen la corona de estrellas -->
+  <circle cx="120" cy="120" r="67.5" fill="none" stroke="#E8CECC" stroke-width="1.05" stroke-dasharray="1.8 3.8" stroke-linecap="round" stroke-opacity="0.72" />
+  <circle cx="120" cy="120" r="54.5" fill="none" stroke="#C9A5A3" stroke-width="0.65" stroke-dasharray="1.2 4.4" stroke-linecap="round" stroke-opacity="0.34" />
+
+  <!-- LUNA CIRCULAR CENTRAL (r=36, completamente despejada de las garras) -->
+  <g>
+    <circle cx="120" cy="120" r="40.5" fill="#B81420" fill-opacity="0.28" />
+    <g clip-path="url(#ev-moon-clip)">
+      <circle cx="120" cy="120" r="36" fill="url(#ev-moon-shadow)" />
+      <path d="M 126.25,84.55 A 36.0,36.0 0 1 1 103.10,151.79 C 117.5,134.0 125.5,112.0 126.25,84.55 Z" fill="url(#ev-moon-bright)" />
+      <circle cx="137" cy="130" r="9" fill="#FF9696" fill-opacity="0.11" />
+      <circle cx="128" cy="143" r="5" fill="#8C0C16" fill-opacity="0.18" />
+      <circle cx="144" cy="112" r="4.2" fill="#8C0C16" fill-opacity="0.16" />
+      <path d="M 126.2,84.5 A 36,36 0 0 1 149,141" fill="none" stroke="#FFA8A8" stroke-width="1.1" stroke-opacity="0.65" />
+    </g>
+    <circle cx="120" cy="120" r="36" fill="none" stroke="#75121B" stroke-width="0.8" />
+  </g>
+
+  <!-- GARRA EN MEDIALUNA (cuchillas separadas y afinadas fundidas al collar, estrictamente fuera de r=36) -->
+  <g fill="url(#ev-silver-rose)">
+    <path d="M 83.6,120 A 36.4,36.4 0 1 1 156.4,120 A 36.4,36.4 0 1 1 83.6,120 M 79.8,120 A 40.2,40.2 0 1 0 160.2,120 A 40.2,40.2 0 1 0 79.8,120 Z" fill-rule="evenodd" />
+    <path d="M 135.55,86.65 C 120.20,65.00 85.20,67.20 58.43,81.53 C 82.80,73.60 108.50,76.80 124.78,81.09 Q 130.47,83.47 135.55,86.65 Z" />
+    <path d="M 107.55,84.84 C 90.50,81.80 71.50,94.50 59.63,108.27 C 72.50,98.00 88.80,89.20 100.35,85.97 Q 103.93,85.23 107.55,84.84 Z" />
+    <path d="M 86.65,104.45 C 65.00,119.80 67.20,154.80 81.53,181.57 C 73.60,157.20 76.80,131.50 81.09,115.22 Q 83.47,109.53 86.65,104.45 Z" />
+    <path d="M 84.84,132.45 C 81.80,149.50 94.50,168.50 108.27,180.37 C 98.00,167.50 89.20,151.20 85.97,139.65 Q 85.23,136.07 84.84,132.45 Z" />
+    <path d="M 104.45,153.35 C 119.80,175.00 154.80,172.80 181.57,158.47 C 157.20,166.40 131.50,163.20 115.22,158.91 Q 109.53,156.53 104.45,153.35 Z" />
+    <path d="M 132.45,155.16 C 149.50,158.20 168.50,145.50 180.37,131.73 C 167.50,142.00 151.20,150.80 139.65,154.03 Q 136.07,154.77 132.45,155.16 Z" />
+    <path d="M 153.35,135.55 C 175.00,120.20 172.80,85.20 158.47,58.43 C 166.40,82.80 163.20,108.50 158.91,124.78 Q 156.53,130.47 153.35,135.55 Z" />
+    <path d="M 155.16,107.55 C 158.20,90.50 145.50,71.50 131.73,59.63 C 142.00,72.50 150.80,88.80 154.03,100.35 Q 154.77,103.93 155.16,107.55 Z" />
+  </g>
+
+  <!-- 4 ESTRELLAS CARDINALES (largo total 35 <= radio lunar 36) -->
+  <g>
+    <path d="M 120.00,22.50 C 121.04,35.67 122.52,38.21 130.20,40.00 C 122.52,41.79 121.04,44.33 120.00,57.50 C 118.96,44.33 117.48,41.79 109.80,40.00 C 117.48,38.21 118.96,35.67 120.00,22.50 Z" fill="url(#ev-star-core)" />
+    <path d="M 120.00,26.00 L 120.82,40.00 L 120.00,54.00 L 119.18,40.00 Z M 111.84,40.00 L 120.00,39.18 L 128.16,40.00 L 120.00,40.82 Z" fill="#FFFFFF" fill-opacity="0.88" />
+  </g>
+  <g>
+    <path d="M 120.00,182.50 C 121.04,195.67 122.52,198.21 130.20,200.00 C 122.52,201.79 121.04,204.33 120.00,217.50 C 118.96,204.33 117.48,201.79 109.80,200.00 C 117.48,198.21 118.96,195.67 120.00,182.50 Z" fill="url(#ev-star-core)" />
+    <path d="M 120.00,186.00 L 120.82,200.00 L 120.00,214.00 L 119.18,200.00 Z M 111.84,200.00 L 120.00,199.18 L 128.16,200.00 L 120.00,200.82 Z" fill="#FFFFFF" fill-opacity="0.88" />
+  </g>
+  <g>
+    <path d="M 40.00,109.80 C 41.79,117.48 44.33,118.96 57.50,120.00 C 44.33,121.04 41.79,122.52 40.00,130.20 C 38.21,122.52 35.67,121.04 22.50,120.00 C 35.67,118.96 38.21,117.48 40.00,109.80 Z" fill="url(#ev-star-core)" />
+    <path d="M 40.00,111.84 L 40.82,120.00 L 40.00,128.16 L 39.18,120.00 Z M 26.00,120.00 L 40.00,119.18 L 54.00,120.00 L 40.00,120.82 Z" fill="#FFFFFF" fill-opacity="0.88" />
+  </g>
+  <g>
+    <path d="M 200.00,109.80 C 201.79,117.48 204.33,118.96 217.50,120.00 C 204.33,121.04 201.79,122.52 200.00,130.20 C 198.21,122.52 195.67,121.04 182.50,120.00 C 195.67,118.96 198.21,117.48 200.00,109.80 Z" fill="url(#ev-star-core)" />
+    <path d="M 200.00,111.84 L 200.82,120.00 L 200.00,128.16 L 199.18,120.00 Z M 186.00,120.00 L 200.00,119.18 L 214.00,120.00 L 200.00,120.82 Z" fill="#FFFFFF" fill-opacity="0.88" />
+  </g>
+
+  <!-- 8 ESTRELLAS CHICAS EN CORONA (2 por cuadrante) -->
+  <use href="#ev-small-star" x="153.75" y="50.79" />
+  <use href="#ev-small-star" x="189.21" y="86.25" />
+  <use href="#ev-small-star" x="189.21" y="153.75" />
+  <use href="#ev-small-star" x="153.75" y="189.21" />
+  <use href="#ev-small-star" x="86.25" y="189.21" />
+  <use href="#ev-small-star" x="50.79" y="153.75" />
+  <use href="#ev-small-star" x="50.79" y="86.25" />
+  <use href="#ev-small-star" x="86.25" y="50.79" />
+
+  <!-- Micro-estrellas orbitales sobre el trazo punteado -->
+  <use href="#ev-micro-star" x="167.73" y="72.27" />
+  <use href="#ev-micro-star" x="167.73" y="167.73" />
+  <use href="#ev-micro-star" x="72.27" y="167.73" />
+  <use href="#ev-micro-star" x="72.27" y="72.27" />
+
+  <!-- Polvo estelar fijo en plata rosada -->
+  <g fill="#F4DFDD" fill-opacity="0.72">
+    <circle cx="139.13" cy="30.01" r="1.0" />
+    <circle cx="181.71" cy="46.46" r="1.2" />
+    <circle cx="217.81" cy="99.21" r="1.4" />
+    <circle cx="209.27" cy="142.26" r="1.0" />
+    <circle cx="184.24" cy="191.34" r="1.2" />
+    <circle cx="137.36" cy="218.48" r="1.4" />
+    <circle cx="97.74" cy="209.27" r="1.0" />
+    <circle cx="48.66" cy="184.24" r="1.2" />
+    <circle cx="22.97" cy="144.19" r="1.4" />
+    <circle cx="30.73" cy="97.74" r="1.0" />
+    <circle cx="53.31" cy="50.94" r="1.2" />
+    <circle cx="95.81" cy="22.97" r="1.4" />
+  </g>
+</svg>

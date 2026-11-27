@@ -16,10 +16,20 @@ import {
   type PedidoDeTramo,
   type ResultadoTanda,
 } from './src/stickers/tanda';
-import { agregarAWhatsApp, consultarAgregados, estaAgregado } from './src/whatsapp/agregar';
+import { colores, estilosPie, radios, ALTO_BOTON_SELECCION } from './src/tema/tema';
+import { agregarAWhatsApp, consultarAgregados, estaAgregado, type ResultadoPedido, type TipoAviso } from './src/whatsapp/agregar';
 
 const mensajeDe = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const uriDeSticker = (nombre: string) => archivoDeSticker(nombre).uri;
+/** Un aviso de una línea: lleva su tipo desde donde se crea. */
+interface Aviso {
+  texto: string;
+  tipo: TipoAviso;
+}
+const avisoError = (texto: string): Aviso => ({ texto, tipo: 'error' });
+/** Una tanda que no agregó nada es un error (descartó todo); con tramos acortados, información. */
+const tipoDeResumen = (resultado: ResultadoTanda): TipoAviso =>
+  resultado.paquetes.length === 0 ? 'error' : resultado.acortados > 0 ? 'informativo' : 'normal';
 const SIN_SELECCION: ReadonlySet<string> = new Set();
 
 /** Un selector de tramo abierto: la tanda espera a que `responder` le diga la elección (o null si el usuario volvió). */
@@ -46,11 +56,7 @@ function Pantalla() {
   const [biblioteca, setBiblioteca] = useState<Biblioteca | null>(null);
   const [paquetes, setPaquetes] = useState<VistaPaquete[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [aviso, setAviso] = useState<string | null>(null);
-  // El aviso de una tanda con tramos acortados lleva el ícono de información
-  // (acortar es un ajuste, no un error). Se guarda el texto: si otro aviso lo
-  // reemplaza, el ícono se va solo.
-  const [avisoInformativo, setAvisoInformativo] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<Aviso | null>(null);
   const [convirtiendo, setConvirtiendo] = useState(false);
   const [agregados, setAgregados] = useState<Record<string, boolean>>({});
   // Stickers marcados para borrar, como en una galería: con alguno marcado, la pantalla está en modo selección.
@@ -118,13 +124,14 @@ function Pantalla() {
       if (resultado.agregado) setAgregados((antes) => ({ ...antes, [paquete.id]: true }));
       return resultado;
     } catch (e) {
-      return { agregado: false, aviso: `No se pudo abrir WhatsApp: ${mensajeDe(e)}` };
+      return { agregado: false, aviso: `No se pudo abrir WhatsApp: ${mensajeDe(e)}`, tipoAviso: 'error' } satisfies ResultadoPedido;
     }
   }
 
   async function agregar(paquete: VistaPaquete) {
     setAviso(null);
-    setAviso((await pedirAWhatsApp(paquete, false)).aviso);
+    const { aviso: texto, tipoAviso } = await pedirAWhatsApp(paquete, false);
+    setAviso(texto ? { texto, tipo: tipoAviso } : null);
   }
 
   // Todo lo que cambia la biblioteca (tandas de la galería o de Compartir y
@@ -143,10 +150,10 @@ function Pantalla() {
    * menos de 3 no hay contenido nuevo publicado: no se pide nada. Devuelve el
    * aviso si la actualización no se hizo.
    */
-  async function actualizarEnWhatsApp(paquete: VistaPaquete): Promise<string | null> {
+  async function actualizarEnWhatsApp(paquete: VistaPaquete): Promise<Aviso | null> {
     if (!paquete.sePuedeAgregar || !(await estaAgregado(paquete))) return null;
     const actualizacion = await pedirAWhatsApp(paquete, true);
-    return actualizacion.agregado ? null : actualizacion.aviso;
+    return actualizacion.agregado || !actualizacion.aviso ? null : { texto: actualizacion.aviso, tipo: actualizacion.tipoAviso };
   }
 
   // Estables (no dependen de la selección actual) para que la grilla redibuje
@@ -188,7 +195,10 @@ function Pantalla() {
         const tocados = await biblioteca.borrarStickers(archivos);
         if (tocados.length === 0) return;
         setPaquetes(biblioteca.paquetes());
-        let resumen = archivos.length === 1 ? 'Sticker borrado' : `${archivos.length} stickers borrados`;
+        let resumen: Aviso = {
+          texto: archivos.length === 1 ? 'Sticker borrado' : `${archivos.length} stickers borrados`,
+          tipo: 'normal',
+        };
         setAviso(resumen);
         // Una actualización por paquete tocado, como al final de una tanda.
         for (const paquete of tocados) {
@@ -197,7 +207,7 @@ function Pantalla() {
         }
         setAviso(resumen);
       } catch (e) {
-        setAviso(`No se pudieron borrar los stickers: ${mensajeDe(e)}`);
+        setAviso(avisoError(`No se pudieron borrar los stickers: ${mensajeDe(e)}`));
       }
     });
   }
@@ -206,12 +216,11 @@ function Pantalla() {
     if (!biblioteca) return;
     setConvirtiendo(true);
     setAviso(null);
-    let resumen: string | null = null;
+    let resumen: Aviso | null = null;
     try {
       const resultado = await tanda();
       if (resultado) {
-        resumen = resultado.aviso;
-        setAvisoInformativo(resultado.acortados > 0 ? resumen : null);
+        resumen = { texto: resultado.aviso, tipo: tipoDeResumen(resultado) };
         setAviso(resumen);
         setPaquetes(biblioteca.paquetes());
         // WhatsApp no relee solo un paquete que ya tiene: le pedimos que lo
@@ -226,7 +235,7 @@ function Pantalla() {
         setAviso(resumen);
       }
     } catch (e) {
-      resumen = `No se pudo crear el sticker: ${mensajeDe(e)}`;
+      resumen = avisoError(`No se pudo crear el sticker: ${mensajeDe(e)}`);
       setAviso(resumen);
     } finally {
       setConvirtiendo(false);
@@ -234,7 +243,7 @@ function Pantalla() {
     // Desde Compartir, el aviso tiene que verse sobre la app de origen, a la
     // que volvemos apenas termina la tanda.
     if (desdeCompartir) {
-      if (resumen) ToastAndroid.show(resumen, ToastAndroid.LONG);
+      if (resumen) ToastAndroid.show(resumen.texto, ToastAndroid.LONG);
       await Compartir.volverAlOrigen().catch(() => {}); // si falla, la app queda abierta con el aviso
     }
   }
@@ -249,7 +258,7 @@ function Pantalla() {
         .then((archivos) => {
           if (archivos.length > 0) encolar(() => convertirTanda(biblioteca, archivos, elegirTramo), true);
         })
-        .catch((e: unknown) => setAviso(`No se pudo leer lo compartido: ${mensajeDe(e)}`));
+        .catch((e: unknown) => setAviso(avisoError(`No se pudo leer lo compartido: ${mensajeDe(e)}`)));
     };
     recibir();
     const compartido = Compartir.addListener('compartido', recibir);
@@ -266,6 +275,8 @@ function Pantalla() {
   function elegirDeGaleria() {
     if (biblioteca) encolar(() => crearStickerDesdeGaleria(biblioteca, elegirTramo));
   }
+
+  const inactivo = !biblioteca || convirtiendo;
 
   return (
     // Android dibuja de borde a borde: dejamos lugar para la barra de estado
@@ -284,27 +295,30 @@ function Pantalla() {
         />
       )}
       {aviso && (
-        <Text style={styles.aviso}>
-          {aviso === avisoInformativo && <Text style={styles.iconoInformacion}>ⓘ </Text>}
-          {aviso}
-        </Text>
+        <View style={[styles.aviso, aviso.tipo === 'informativo' && styles.avisoInformativo, aviso.tipo === 'error' && styles.avisoError]}>
+          {aviso.tipo === 'informativo' && <Text style={styles.iconoInformacion}>ⓘ</Text>}
+          {aviso.tipo === 'error' && <Text style={styles.iconoError}>⚠</Text>}
+          <Text style={[styles.textoAviso, aviso.tipo === 'error' && styles.textoAvisoError]}>{aviso.texto}</Text>
+        </View>
       )}
       {seleccionando ? (
         <View style={styles.barraSeleccion}>
-          <Pressable style={[styles.boton, styles.botonCancelar]} onPress={() => setSeleccion(SIN_SELECCION)}>
+          <Pressable style={[styles.botonSeleccion, styles.botonCancelar]} onPress={() => setSeleccion(SIN_SELECCION)}>
             <Text style={styles.textoCancelar}>Cancelar</Text>
           </Pressable>
-          <Pressable style={[styles.boton, styles.botonBorrar]} onPress={confirmarBorrado}>
-            <Text style={styles.textoBoton}>Borrar ({seleccion.size})</Text>
+          <Pressable style={[styles.botonSeleccion, styles.botonBorrar]} onPress={confirmarBorrado}>
+            <Text style={styles.textoBorrar}>🗑 Borrar ({seleccion.size})</Text>
           </Pressable>
         </View>
       ) : (
         <Pressable
-          style={[styles.boton, (!biblioteca || convirtiendo) && styles.botonInactivo]}
-          disabled={!biblioteca || convirtiendo}
+          style={[styles.principal, inactivo && styles.principalInactivo]}
+          disabled={inactivo}
           onPress={elegirDeGaleria}
         >
-          <Text style={styles.textoBoton}>{convirtiendo ? 'Convirtiendo…' : 'Elegir de la galería'}</Text>
+          <Text style={[styles.textoPrincipal, inactivo && styles.textoPrincipalInactivo]}>
+            {convirtiendo ? 'Convirtiendo…' : 'Elegir de la galería'}
+          </Text>
         </Pressable>
       )}
       {selectorAbierto && (
@@ -320,21 +334,55 @@ function Pantalla() {
           onVolver={() => selectorAbierto.responder(null)}
         />
       )}
-      <StatusBar style="auto" />
+      <StatusBar style="light" />
     </SafeAreaView>
   );
 }
 
+const margenPie = { marginHorizontal: 16, marginBottom: 16 } as const;
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  error: { padding: 16, color: '#B42318' },
-  aviso: { paddingHorizontal: 16, paddingBottom: 8, color: '#344054' },
-  iconoInformacion: { color: '#1570EF', fontWeight: '700' },
-  boton: { margin: 16, padding: 16, borderRadius: 12, backgroundColor: '#1570EF', alignItems: 'center' },
-  botonInactivo: { opacity: 0.5 },
-  textoBoton: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  barraSeleccion: { flexDirection: 'row' },
-  botonCancelar: { flex: 1, marginRight: 8, backgroundColor: '#F2F4F7' },
-  botonBorrar: { flex: 1, marginLeft: 8, backgroundColor: '#D92D20' },
-  textoCancelar: { color: '#344054', fontSize: 16, fontWeight: '600' },
+  container: { flex: 1, backgroundColor: colores.lienzo },
+  error: { padding: 16, color: colores.errorTexto },
+  aviso: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    marginHorizontal: 16,
+    marginBottom: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: radios.aviso,
+    backgroundColor: colores.control,
+    borderWidth: 1,
+    borderColor: colores.bordeAviso,
+    borderLeftWidth: 3.5,
+    borderLeftColor: colores.bordeControl,
+  },
+  avisoInformativo: { backgroundColor: colores.avisoInfoFondo, borderLeftColor: colores.avisoInfoAcento },
+  avisoError: { backgroundColor: colores.errorFondo, borderColor: colores.errorBorde, borderLeftColor: colores.errorAcento },
+  textoAviso: { flex: 1, fontSize: 13, lineHeight: 18, fontWeight: '500', color: colores.textoPrincipal },
+  textoAvisoError: { color: colores.errorTexto },
+  iconoInformacion: { fontSize: 15, fontWeight: '700', color: colores.avisoInfoAcento },
+  iconoError: { fontSize: 15, fontWeight: '700', color: colores.errorAcento },
+  principal: {
+    ...estilosPie.principal,
+    ...margenPie,
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: [{ offsetX: 0, offsetY: 10, blurRadius: 26, color: colores.resplandor }],
+  },
+  principalInactivo: {
+    backgroundColor: colores.inactivoFondo,
+    borderColor: colores.inactivoBorde,
+    boxShadow: [],
+  },
+  textoPrincipal: { color: colores.carmesiTexto, fontSize: 15.5, fontWeight: '600', letterSpacing: 0.15 },
+  textoPrincipalInactivo: { color: colores.inactivoTexto },
+  barraSeleccion: { flexDirection: 'row', gap: 10, ...margenPie },
+  botonSeleccion: { minHeight: ALTO_BOTON_SELECCION, borderRadius: radios.boton, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  botonCancelar: { flex: 1, backgroundColor: colores.control, borderColor: colores.bordeCancelar },
+  botonBorrar: { flex: 1.2, backgroundColor: colores.destructivoFondo, borderColor: colores.destructivoBorde },
+  textoCancelar: { color: colores.textoPrincipal, fontSize: 15, fontWeight: '600' },
+  textoBorrar: { color: colores.destructivoTexto, fontSize: 15, fontWeight: '600', fontVariant: ['tabular-nums'] },
 });
