@@ -26,7 +26,7 @@ export const Banner = memo(function Banner({ resumen }: { resumen: string }) {
         <Rect x="0" y="0" width="100%" height="100%" fill="url(#banner-resplandor)" />
       </Svg>
       {/* Marcas de astrolabio en el borde derecho. */}
-      <Svg style={styles.marcas} width={110} height="100%" viewBox="0 0 110 96" preserveAspectRatio="xMaxYMid slice" pointerEvents="none">
+      <Svg style={styles.marcas} opacity={0.32} width={110} height="100%" viewBox="0 0 110 96" preserveAspectRatio="xMaxYMid slice" pointerEvents="none">
         <Circle cx="110" cy="48" r="68" fill="none" stroke={colores.plata} strokeWidth="0.75" strokeDasharray="2 5" />
         <Circle cx="110" cy="48" r="52" fill="none" stroke={colores.plata} strokeWidth="0.6" strokeOpacity="0.55" />
         <Line x1="60" y1="48" x2="70" y2="48" stroke={colores.plata} strokeWidth="0.8" />
@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
     boxShadow: '0 8px 22px rgba(0, 0, 0, 0.48)',
   },
   resplandor: { position: 'absolute', left: -24, top: 0, bottom: 0 },
-  marcas: { position: 'absolute', right: 0, top: 0, bottom: 0, opacity: 0.32 },
+  marcas: { position: 'absolute', right: 0, top: 0, bottom: 0 },
   info: { flexShrink: 1, alignItems: 'flex-start', gap: 6 },
   titulo: {
     fontFamily: tipografias.serif,
