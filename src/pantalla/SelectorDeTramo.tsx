@@ -474,7 +474,7 @@ const styles = StyleSheet.create({
   mayor: { height: 11, backgroundColor: colores.textoAtenuado },
   etiquetaMarca: { position: 'absolute', top: 0, width: 40, textAlign: 'center', fontSize: 11, color: colores.textoAtenuado, ...NUMEROS },
   carril: { height: 50, backgroundColor: colores.cabecera, borderRadius: 6, borderWidth: 1, borderColor: colores.borde },
-  lineaCarril: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: colores.borde },
+  lineaCarril: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: colores.textoPrincipal },
 
   capaTramo: { position: 'absolute', bottom: 7, height: 52, flexDirection: 'row' },
   bloque: {
@@ -539,8 +539,6 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     backgroundColor: colores.carmesi,
-    borderWidth: 1,
-    borderColor: colores.carmesiBorde,
     alignItems: 'center',
   },
   textoCrear: { color: colores.carmesiTexto, fontSize: 16, fontWeight: '600' },
