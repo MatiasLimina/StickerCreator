@@ -27,6 +27,9 @@ export const colores = {
   carmesiTinte: '#2E1216',
   carmesiBorde: 'rgba(255, 184, 190, 0.24)',
   resplandor: 'rgba(189, 23, 54, 0.46)',
+  // Marcas de la regla del Selector de tramo (textoAtenuado con transparencia)
+  marcaMedio: 'rgba(182, 153, 151, 0.22)',
+  marcaSegundo: 'rgba(182, 153, 151, 0.48)',
   // Baldosas de la grilla (#35)
   baldosa: '#F8F0EE',
   baldosaMarcada: '#EED9DA',
