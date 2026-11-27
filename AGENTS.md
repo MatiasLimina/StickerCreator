@@ -11,7 +11,7 @@ npx expo install <paquete>  # siempre en lugar de npm install <paquete>: resuelv
 npx expo-doctor             # diagnóstico de dependencias y config
 npx expo run:android        # development build local (requiere Android SDK)
 # tests instrumentados (conversor y contrato con WhatsApp), con un teléfono o emulador conectado (después de `npx expo prebuild`):
-cd android && ./gradlew :conversor:connectedDebugAndroidTest :whatsapp:connectedDebugAndroidTest
+cd android && ./gradlew :conversor:connectedDebugAndroidTest :whatsapp:connectedDebugAndroidTest -PreactNativeArchitectures=arm64-v8a --max-workers=2
 ```
 
 Las pruebas nativas y los builds locales se hacen en un teléfono físico por USB, sin emulador: SDK en `D:\DevTools\Android`, paso a paso en `docs/agents/probar-en-telefono.md` (incluye el arreglo de rutas largas de Windows).
