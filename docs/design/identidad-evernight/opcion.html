@@ -1,0 +1,1798 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StickerCreator — Evernight · Opción Neon v2 (Astrolabio Táctil)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      /* Estudio / lienzo de presentación neutro */
+      --stage-bg: #141111;
+      --stage-card: #1D1818;
+      --stage-border: #302626;
+      --stage-text: #F2ECEB;
+      --stage-muted: #A99A98;
+
+      /* Paleta Evernight — Neon v2 (Fondo cálido de B + Arquitectura C · Cero violetas, R > G >= B) */
+      --bg-canvas: #070505;
+      --bg-vignette-mid: #130707;
+      --bg-vignette-top: #210B0A;
+
+      --bg-card: #151010;
+      --bg-card-header: #1D1515;
+      --bg-elevated: #271C1C;
+      --border-hairline: #3A2B2B;
+      --border-control: #8C7270;
+
+      --text-primary: #F6ECEA;
+      --text-secondary: #D8BCBA;
+      --text-muted: #B69997;
+
+      --crimson-cta: #BD1736;
+      --crimson-cta-text: #FFF8F8;
+      --crimson-hi: #F03A57;
+      --crimson-tint: #2E1216;
+
+      --tile-bg: #F8F0EE;
+      --tile-selected-bg: #EED9DA;
+
+      --info-bg: #1E1516;
+      --info-accent: #E8C6C4;
+
+      --err-bg: #261111;
+      --err-accent: #F25C54;
+      --err-text: #FFA8A3;
+
+      --del-bg: #2D1213;
+      --del-border: #E84A43;
+      --del-text: #FFE0DE;
+
+      /* Verde únicamente para el puntito de estado En WhatsApp */
+      --wa-dot: #2ED66B;
+
+      --font-serif: 'Cinzel', Georgia, serif;
+      --font-sans: 'Roboto', system-ui, -apple-system, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--stage-bg);
+      color: var(--stage-text);
+      font-family: var(--font-sans);
+      -webkit-font-smoothing: antialiased;
+      padding: 24px 20px 36px;
+    }
+
+    .board {
+      width: 1560px;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    .board-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--stage-border);
+    }
+
+    .board-title {
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      color: var(--stage-text);
+    }
+
+    .board-title span {
+      color: var(--text-secondary);
+      font-weight: 400;
+      margin-left: 8px;
+    }
+
+    .board-meta {
+      font-size: 12.5px;
+      color: var(--stage-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* 3 pantallas lado a lado dentro de 1560px */
+    .screens-row {
+      display: grid;
+      grid-template-columns: 404px 404px 704px;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .screen-col {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .screen-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2px;
+    }
+
+    .screen-label-main {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--stage-text);
+      letter-spacing: 0.01em;
+    }
+
+    .screen-label-tag {
+      font-size: 11.5px;
+      color: var(--stage-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Marco de teléfono Android (viewport interior exacto 390 x 844) */
+    .phone-frame {
+      width: 404px;
+      padding: 7px;
+      border-radius: 38px;
+      background: #050404;
+      border: 1px solid #352929;
+      box-shadow: 0 22px 48px rgba(0, 0, 0, 0.62), 0 0 0 1px rgba(255, 244, 242, 0.04) inset;
+    }
+
+    /* Fondo adoptado de B (Argon): negro profundo + viñeta radial carbón-carmesí (cero violeta) */
+    .phone-screen {
+      position: relative;
+      width: 390px;
+      height: 844px;
+      border-radius: 31px;
+      background-color: var(--bg-canvas);
+      background-image: radial-gradient(ellipse 92% 46% at 50% 10%, var(--bg-vignette-top) 0%, var(--bg-vignette-mid) 52%, var(--bg-canvas) 100%);
+      color: var(--text-primary);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .phone-screen.scrolled-bg {
+      background-image: radial-gradient(ellipse 95% 55% at 50% 24%, #1E0A09 0%, #110606 55%, #070505 100%);
+    }
+
+    .phone-screen.splash-bg {
+      background-color: #060404;
+      background-image: radial-gradient(circle at 50% 44%, #260C0B 0%, #130606 46%, #060404 100%);
+    }
+
+    /* Constelaciones y arcos celestes fijos (adoptados de B, sin animación) */
+    .star-chart {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Barra de estado Android (íconos claros sobre fondo oscuro) */
+    .status-bar {
+      position: relative;
+      z-index: 5;
+      height: 30px;
+      padding: 7px 20px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-primary);
+      font-variant-numeric: tabular-nums;
+      flex-shrink: 0;
+    }
+
+    .status-icons {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Zona scrolleable principal */
+    .scroll-content {
+      position: relative;
+      z-index: 2;
+      flex: 1;
+      padding: 6px 16px 96px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow: hidden;
+    }
+
+    .scroll-content.scrolled {
+      padding-top: 16px;
+      padding-bottom: 148px;
+      gap: 14px;
+    }
+
+    /* ============================================================
+       BANNER SUPERIOR COMPACTO — SELLO A LA IZQUIERDA (NEON)
+       ============================================================ */
+    .hero-banner {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      padding: 9px 14px 9px 10px;
+      border-radius: 20px;
+      background:
+        radial-gradient(circle at 46px 50%, rgba(200, 30, 43, 0.28) 0%, rgba(189, 23, 54, 0.08) 46%, transparent 74%),
+        linear-gradient(135deg, rgba(28, 17, 17, 0.94) 0%, rgba(18, 12, 12, 0.92) 100%);
+      border: 1px solid rgba(226, 200, 197, 0.16);
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 240, 238, 0.08);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .hero-banner-ticks {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 110px;
+      height: 100%;
+      pointer-events: none;
+      opacity: 0.32;
+    }
+
+    .hero-emblem-wrap {
+      width: 68px;
+      height: 68px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .hero-info {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .app-title {
+      font-family: var(--font-serif);
+      font-size: 20.5px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      line-height: 1.1;
+      color: var(--text-primary);
+    }
+
+    .summary-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3.5px 10px;
+      border-radius: 999px;
+      background: var(--bg-elevated);
+      border: 1px solid #4E3939;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.01em;
+    }
+
+    .summary-pill-dot {
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: var(--border-control);
+    }
+
+    /* ============================================================
+       TARJETAS DE PAQUETE (ESTRUCTURA EN 2 ZONAS NÍTIDAS — NEON)
+       ============================================================ */
+    .pkg-card {
+      border-radius: 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-hairline);
+      overflow: hidden;
+      flex-shrink: 0;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.56), inset 0 1px 0 rgba(255, 240, 238, 0.06);
+    }
+
+    .pkg-header {
+      background: var(--bg-card-header);
+      padding: 10px 14px 8px;
+      border-bottom: 1px solid var(--border-hairline);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .pkg-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .pkg-name {
+      font-family: var(--font-serif);
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: var(--text-primary);
+      line-height: 1.2;
+    }
+
+    .counter-pill {
+      padding: 2.5px 9px;
+      border-radius: 999px;
+      background: var(--bg-elevated);
+      border: 1px solid #523D3D;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      font-variant-numeric: tabular-nums;
+      flex-shrink: 0;
+    }
+
+    .pkg-status-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      line-height: 1.25;
+    }
+
+    .pkg-status-row.muted {
+      color: var(--text-muted);
+    }
+
+    .wa-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--wa-dot);
+      flex-shrink: 0;
+    }
+
+    /* Fila reservada issue #18 (4 sin pasar a WhatsApp + Actualizar >= 48dp hit target) */
+    .pkg-pending-row {
+      margin-top: 2px;
+      margin-bottom: -6px;
+      padding-top: 2px;
+      border-top: 1px dashed rgba(216, 188, 186, 0.16);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      min-height: 44px;
+    }
+
+    .pkg-pending-text {
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--info-accent);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .btn-mini-hit {
+      min-height: 48px;
+      min-width: 88px;
+      margin: -4px 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-end;
+      background: transparent;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+    }
+
+    .btn-mini-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 32px;
+      padding: 0 13px;
+      border-radius: 999px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-control);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 12.5px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+
+    /* Zona de grilla de stickers */
+    .pkg-body {
+      padding: 10px 14px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .sticker-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 9px;
+      justify-items: center;
+    }
+
+    .sticker-tile {
+      position: relative;
+      width: 73px;
+      height: 73px;
+      border-radius: 14px;
+      background: var(--tile-bg);
+      border: 2px solid transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.42), 0 1px 0 rgba(255, 255, 255, 0.6) inset;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .sticker-tile svg {
+      width: 56px;
+      height: 56px;
+      display: block;
+    }
+
+    /* Estado seleccionado en Pantalla 2 */
+    .sticker-tile.selected {
+      background: var(--tile-selected-bg);
+      border-color: var(--crimson-hi);
+      box-shadow: 0 0 0 2px rgba(240, 58, 87, 0.25), 0 4px 10px rgba(0, 0, 0, 0.42);
+    }
+
+    .sticker-tile.selected .sticker-art {
+      opacity: 0.56;
+    }
+
+    .check-badge {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--crimson-cta);
+      border: 2px solid var(--bg-card);
+      color: var(--crimson-cta-text);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+    }
+
+    .sticker-tile.selected .check-badge {
+      display: flex;
+    }
+
+    /* Insignia en español para stickers animados (sin anglicismos) */
+    .anim-tag {
+      position: absolute;
+      bottom: 4px;
+      right: 4px;
+      padding: 1.5px 5px;
+      border-radius: 5px;
+      background: rgba(21, 16, 16, 0.86);
+      color: var(--text-primary);
+      font-size: 8px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      line-height: 1.2;
+    }
+
+    /* Botón Agregar a WhatsApp (secundario integrado a la paleta oscura/plata rosada, NUNCA verde) */
+    .btn-add-wa {
+      width: 100%;
+      min-height: 48px;
+      border-radius: 14px;
+      background: var(--bg-elevated);
+      border: 1.5px solid var(--border-control);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 14.5px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .btn-add-wa.disabled {
+      background: #1B1313;
+      border-color: #3D2E2E;
+      color: #8E7876;
+      cursor: not-allowed;
+    }
+
+    /* ============================================================
+       ZONA FIJA INFERIOR (ALCANCE DEL PULGAR)
+       ============================================================ */
+    .bottom-dock {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 6;
+      padding: 18px 16px 10px;
+      background: linear-gradient(180deg, rgba(7, 5, 5, 0) 0%, rgba(7, 5, 5, 0.92) 24%, #070505 46%);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* Botón principal en cápsula ancha carmesí con resplandor dirigido hacia abajo */
+    .cta-primary {
+      width: 100%;
+      min-height: 54px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 184, 190, 0.24);
+      background: linear-gradient(180deg, #CC1B3D 0%, var(--crimson-cta) 100%);
+      color: var(--crimson-cta-text);
+      font-family: var(--font-sans);
+      font-size: 15.5px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      box-shadow: 0 10px 26px rgba(189, 23, 54, 0.46), 0 2px 6px rgba(0, 0, 0, 0.5);
+      cursor: pointer;
+    }
+
+    /* Avisos encima de la zona fija inferior */
+    .notice-bar {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 10px 12px;
+      border-radius: 13px;
+      font-size: 12.5px;
+      line-height: 1.35;
+      font-weight: 500;
+    }
+
+    .notice-info {
+      background: var(--info-bg);
+      border: 1px solid #4E3939;
+      border-left: 3.5px solid var(--info-accent);
+      color: var(--text-primary);
+    }
+
+    .notice-info-icon {
+      color: var(--info-accent);
+      font-size: 15px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .notice-error {
+      background: var(--err-bg);
+      border: 1px solid #662726;
+      border-left: 3.5px solid var(--err-accent);
+      color: var(--err-text);
+    }
+
+    .notice-normal {
+      background: var(--bg-elevated);
+      border: 1px solid #4E3939;
+      border-left: 3.5px solid var(--border-control);
+      color: var(--text-primary);
+    }
+
+    /* Barra de selección para borrar */
+    .selection-bar {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr;
+      gap: 10px;
+    }
+
+    .btn-cancel {
+      min-height: 50px;
+      border-radius: 14px;
+      background: var(--bg-elevated);
+      border: 1.5px solid #5E4848;
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* Acción destructiva claramente diferenciada del CTA carmesí */
+    .btn-delete {
+      min-height: 50px;
+      border-radius: 14px;
+      background: var(--del-bg);
+      border: 1.5px solid var(--del-border);
+      color: var(--del-text);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      cursor: pointer;
+    }
+
+    /* Indicador gestual Android */
+    .gesture-bar {
+      width: 118px;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(246, 236, 234, 0.32);
+      margin: 4px auto 0;
+    }
+
+    /* ============================================================
+       TIRA DE ESTADOS COMPLEMENTARIOS (DEBAJO DE PANTALLA 2)
+       ============================================================ */
+    .states-strip {
+      width: 404px;
+      border-radius: 20px;
+      background: var(--stage-card);
+      border: 1px solid var(--stage-border);
+      padding: 14px 16px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .states-strip-title {
+      font-size: 11.5px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--stage-muted);
+    }
+
+    .state-block {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .state-caption {
+      font-size: 11.5px;
+      color: var(--text-secondary);
+      display: flex;
+      justify-content: space-between;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Botón en tanda en curso (issue #22) con barra fina carmesí y punto de luz */
+    .cta-busy {
+      position: relative;
+      width: 100%;
+      min-height: 54px;
+      border-radius: 999px;
+      background: #271215;
+      border: 1px solid #6E222E;
+      color: #F4DCD9;
+      font-size: 14.5px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px 3px;
+      overflow: hidden;
+    }
+
+    .cta-busy-pct {
+      font-size: 12.5px;
+      color: var(--info-accent);
+      font-weight: 600;
+    }
+
+    .progress-track {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 6px;
+      height: 3.5px;
+      border-radius: 999px;
+      background: rgba(246, 236, 234, 0.12);
+    }
+
+    .progress-fill {
+      position: relative;
+      width: 38%;
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--crimson-cta) 0%, var(--crimson-hi) 100%);
+    }
+
+    /* Punto de luz en el extremo de avance (Astrolabio Táctil) */
+    .progress-fill::after {
+      content: '';
+      position: absolute;
+      right: -3px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #FFA0AB;
+      box-shadow: 0 0 8px rgba(240, 58, 87, 0.95);
+    }
+
+    /* ============================================================
+       PANTALLA 3 — HOJA DE IDENTIDAD (SPLASH + ÍCONO ADAPTATIVO)
+       ============================================================ */
+    .identity-grid {
+      display: grid;
+      grid-template-columns: 404px 284px;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .splash-body {
+      position: relative;
+      z-index: 2;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding-bottom: 36px;
+      gap: 16px;
+    }
+
+    .splash-emblem-stage {
+      position: relative;
+      width: 212px;
+      height: 212px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .splash-emblem-stage::before {
+      content: '';
+      position: absolute;
+      inset: -14px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(200, 30, 43, 0.30) 0%, rgba(150, 18, 30, 0.10) 48%, transparent 74%);
+      pointer-events: none;
+    }
+
+    .splash-wordmark {
+      font-family: var(--font-serif);
+      font-size: 27px;
+      font-weight: 600;
+      letter-spacing: 0.09em;
+      color: var(--text-primary);
+      text-align: center;
+      text-shadow: 0 2px 16px rgba(200, 30, 43, 0.45);
+    }
+
+    .splash-ornament {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-muted);
+      font-size: 11px;
+      opacity: 0.72;
+    }
+
+    .splash-footer {
+      position: relative;
+      z-index: 2;
+      padding-bottom: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* Panel derecho de íconos adaptativos */
+    .icon-lab {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .lab-card {
+      border-radius: 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-hairline);
+      padding: 14px 15px 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .lab-card-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .lab-card-title {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .lab-card-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .masks-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .mask-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .mask-caption {
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    /* Caja técnica de zona segura 66/108 dp */
+    .safezone-box {
+      position: relative;
+      width: 176px;
+      height: 176px;
+      margin: 0 auto;
+      border-radius: 16px;
+      background:
+        linear-gradient(to right, rgba(216, 188, 186, 0.06) 1px, transparent 1px) 0 0 / 16px 16px,
+        linear-gradient(to bottom, rgba(216, 188, 186, 0.06) 1px, transparent 1px) 0 0 / 16px 16px,
+        #0D0808;
+      border: 1px solid var(--border-hairline);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .safezone-legend {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .mono-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .mono-tile {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 7px;
+      padding: 12px 8px 10px;
+      border-radius: 14px;
+      background: #0E0A0A;
+      border: 1px solid #2C2121;
+    }
+
+    /* Swatches clave en la hoja de identidad */
+    .swatch-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .swatch-chip {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 7px;
+      border-radius: 10px;
+      background: var(--bg-card-header);
+      border: 1px solid #322424;
+    }
+
+    .swatch-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 5px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      flex-shrink: 0;
+    }
+
+    .swatch-hex {
+      font-size: 10.5px;
+      color: var(--text-secondary);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .type-spec {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding-top: 6px;
+      border-top: 1px solid var(--border-hairline);
+      font-size: 11.5px;
+      color: var(--text-secondary);
+    }
+
+    .type-spec-serif {
+      font-family: var(--font-serif);
+      color: var(--text-primary);
+      font-size: 13px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <!-- Definiciones compartidas de SVG (sin display:none para preservar gradientes/clips en todos los navegadores) -->
+  <svg width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">
+    <defs>
+      <!-- Gradientes del Emblema Evernight (base Argon refinada, cero violeta) -->
+      <radialGradient id="g-ev-halo" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#C81E2B" stop-opacity="0.50" />
+        <stop offset="38%" stop-color="#8F111B" stop-opacity="0.26" />
+        <stop offset="70%" stop-color="#3A070A" stop-opacity="0.12" />
+        <stop offset="100%" stop-color="#070505" stop-opacity="0" />
+      </radialGradient>
+
+      <linearGradient id="g-ev-moon-dark" x1="0%" y1="20%" x2="85%" y2="85%">
+        <stop offset="0%" stop-color="#630E15" />
+        <stop offset="40%" stop-color="#38060A" />
+        <stop offset="100%" stop-color="#1D0305" />
+      </linearGradient>
+
+      <radialGradient id="g-ev-moon-lit" cx="68%" cy="62%" r="58%">
+        <stop offset="0%" stop-color="#FF7878" />
+        <stop offset="30%" stop-color="#F22738" />
+        <stop offset="76%" stop-color="#C41424" />
+        <stop offset="100%" stop-color="#8C0D18" />
+      </radialGradient>
+
+      <linearGradient id="g-ev-silver" x1="12%" y1="8%" x2="88%" y2="92%">
+        <stop offset="0%" stop-color="#FFF7F5" />
+        <stop offset="34%" stop-color="#F2DAD7" />
+        <stop offset="70%" stop-color="#D4B2B1" />
+        <stop offset="100%" stop-color="#AD8988" />
+      </linearGradient>
+
+      <linearGradient id="g-ev-star-core" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#FFFFFF" />
+        <stop offset="55%" stop-color="#F7E4E1" />
+        <stop offset="100%" stop-color="#CCA7A5" />
+      </linearGradient>
+
+      <!-- Fondo cálido del launcher (de B) -->
+      <radialGradient id="g-icon-bg-glow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#380A0E" />
+        <stop offset="58%" stop-color="#160506" />
+        <stop offset="100%" stop-color="#070505" />
+      </radialGradient>
+
+      <clipPath id="c-moon-full">
+        <circle cx="120" cy="120" r="36" />
+      </clipPath>
+      <clipPath id="c-moon-red">
+        <circle cx="54" cy="54" r="13.5" />
+      </clipPath>
+
+      <!-- Máscara squircle real de Android -->
+      <clipPath id="c-mask-squircle" clipPathUnits="objectBoundingBox">
+        <path d="M 0.5,0 C 0.88,0 1,0.12 1,0.5 C 1,0.88 0.88,1 0.5,1 C 0.12,1 0,0.88 0,0.5 C 0,0.12 0.12,0 0.5,0 Z" />
+      </clipPath>
+
+      <!-- Estrella chica reutilizable (14.4 x 9.2) -->
+      <g id="full-sm-star">
+        <path d="M 0.00,-7.20 C 0.50,-1.89 1.21,-0.78 4.60,0.00 C 1.21,0.78 0.50,1.89 0.00,7.20 C -0.50,1.89 -1.21,0.78 -4.60,0.00 C -1.21,-0.78 -0.50,-1.89 0.00,-7.20 Z" fill="url(#g-ev-silver)" />
+        <path d="M 0.00,-5.76 L 0.55,0.00 L 0.00,5.76 L -0.55,0.00 Z M -3.68,0.00 L 0.00,-0.55 L 3.68,0.00 L 0.00,0.55 Z" fill="#FFF7F5" fill-opacity="0.80" />
+      </g>
+
+      <!-- Micro destello orbital -->
+      <path id="full-micro-star" d="M 0.00,-3.40 C 0.38,-0.92 0.92,-0.38 3.40,0.00 C 0.92,0.38 0.38,0.92 0.00,3.40 C -0.38,0.92 -0.92,0.38 -3.40,0.00 C -0.92,-0.38 -0.38,-0.92 0.00,-3.40 Z" fill="#F5E4E2" />
+
+      <!-- SÍMBOLO 1: EMBLEMA COMPLETO (240x240) -->
+      <symbol id="sym-emblema-completo" viewBox="0 0 240 240">
+        <circle cx="120" cy="120" r="114" fill="url(#g-ev-halo)" />
+        <circle cx="120" cy="120" r="102" fill="none" stroke="#6E1118" stroke-width="0.8" stroke-opacity="0.38" />
+        <circle cx="120" cy="120" r="91" fill="none" stroke="#8C1620" stroke-width="0.65" stroke-opacity="0.30" />
+        <circle cx="120" cy="120" r="78" fill="none" stroke="#5A0D13" stroke-width="1.1" stroke-opacity="0.40" />
+
+        <g stroke="#621016" stroke-opacity="0.34" fill="none" stroke-width="1.05">
+          <rect x="64" y="64" width="112" height="112" />
+          <path d="M 103,64 A 17,17 0 0 1 137,64" />
+          <path d="M 103,176 A 17,17 0 0 0 137,176" />
+          <path d="M 64,103 A 17,17 0 0 1 64,137" />
+          <path d="M 176,103 A 17,17 0 0 0 176,137" />
+        </g>
+
+        <circle cx="120" cy="120" r="67.5" fill="none" stroke="#E8CECC" stroke-width="1.05" stroke-dasharray="1.8 3.8" stroke-linecap="round" stroke-opacity="0.72" />
+        <circle cx="120" cy="120" r="54.5" fill="none" stroke="#C9A5A3" stroke-width="0.65" stroke-dasharray="1.2 4.4" stroke-linecap="round" stroke-opacity="0.34" />
+
+        <!-- Luna central despejada (r=36) -->
+        <g>
+          <circle cx="120" cy="120" r="40.5" fill="#B81420" fill-opacity="0.28" />
+          <g clip-path="url(#c-moon-full)">
+            <circle cx="120" cy="120" r="36" fill="url(#g-ev-moon-dark)" />
+            <path d="M 126.25,84.55 A 36.0,36.0 0 1 1 103.10,151.79 C 117.5,134.0 125.5,112.0 126.25,84.55 Z" fill="url(#g-ev-moon-lit)" />
+            <circle cx="137" cy="130" r="9" fill="#FF9696" fill-opacity="0.11" />
+            <circle cx="128" cy="143" r="5" fill="#8C0C16" fill-opacity="0.18" />
+            <circle cx="144" cy="112" r="4.2" fill="#8C0C16" fill-opacity="0.16" />
+            <path d="M 126.2,84.5 A 36,36 0 0 1 149,141" fill="none" stroke="#FFA8A8" stroke-width="1.1" stroke-opacity="0.65" />
+          </g>
+          <circle cx="120" cy="120" r="36" fill="none" stroke="#75121B" stroke-width="0.8" />
+        </g>
+
+        <!-- Garra en medialuna: cuchillas separadas y afinadas, estrictamente fuera de r=36 -->
+        <g fill="url(#g-ev-silver)">
+          <path d="M 83.6,120 A 36.4,36.4 0 1 1 156.4,120 A 36.4,36.4 0 1 1 83.6,120 M 79.8,120 A 40.2,40.2 0 1 0 160.2,120 A 40.2,40.2 0 1 0 79.8,120 Z" fill-rule="evenodd" />
+          <path d="M 135.55,86.65 C 120.20,65.00 85.20,67.20 58.43,81.53 C 82.80,73.60 108.50,76.80 124.78,81.09 Q 130.47,83.47 135.55,86.65 Z" />
+          <path d="M 107.55,84.84 C 90.50,81.80 71.50,94.50 59.63,108.27 C 72.50,98.00 88.80,89.20 100.35,85.97 Q 103.93,85.23 107.55,84.84 Z" />
+          <path d="M 86.65,104.45 C 65.00,119.80 67.20,154.80 81.53,181.57 C 73.60,157.20 76.80,131.50 81.09,115.22 Q 83.47,109.53 86.65,104.45 Z" />
+          <path d="M 84.84,132.45 C 81.80,149.50 94.50,168.50 108.27,180.37 C 98.00,167.50 89.20,151.20 85.97,139.65 Q 85.23,136.07 84.84,132.45 Z" />
+          <path d="M 104.45,153.35 C 119.80,175.00 154.80,172.80 181.57,158.47 C 157.20,166.40 131.50,163.20 115.22,158.91 Q 109.53,156.53 104.45,153.35 Z" />
+          <path d="M 132.45,155.16 C 149.50,158.20 168.50,145.50 180.37,131.73 C 167.50,142.00 151.20,150.80 139.65,154.03 Q 136.07,154.77 132.45,155.16 Z" />
+          <path d="M 153.35,135.55 C 175.00,120.20 172.80,85.20 158.47,58.43 C 166.40,82.80 163.20,108.50 158.91,124.78 Q 156.53,130.47 153.35,135.55 Z" />
+          <path d="M 155.16,107.55 C 158.20,90.50 145.50,71.50 131.73,59.63 C 142.00,72.50 150.80,88.80 154.03,100.35 Q 154.77,103.93 155.16,107.55 Z" />
+        </g>
+
+        <!-- 4 estrellas cardinales reducidas (largo 35 <= radio lunar 36) -->
+        <g>
+          <path d="M 120.00,22.50 C 121.04,35.67 122.52,38.21 130.20,40.00 C 122.52,41.79 121.04,44.33 120.00,57.50 C 118.96,44.33 117.48,41.79 109.80,40.00 C 117.48,38.21 118.96,35.67 120.00,22.50 Z" fill="url(#g-ev-star-core)" />
+          <path d="M 120.00,26.00 L 120.82,40.00 L 120.00,54.00 L 119.18,40.00 Z M 111.84,40.00 L 120.00,39.18 L 128.16,40.00 L 120.00,40.82 Z" fill="#FFFFFF" fill-opacity="0.88" />
+        </g>
+        <g>
+          <path d="M 120.00,182.50 C 121.04,195.67 122.52,198.21 130.20,200.00 C 122.52,201.79 121.04,204.33 120.00,217.50 C 118.96,204.33 117.48,201.79 109.80,200.00 C 117.48,198.21 118.96,195.67 120.00,182.50 Z" fill="url(#g-ev-star-core)" />
+          <path d="M 120.00,186.00 L 120.82,200.00 L 120.00,214.00 L 119.18,200.00 Z M 111.84,200.00 L 120.00,199.18 L 128.16,200.00 L 120.00,200.82 Z" fill="#FFFFFF" fill-opacity="0.88" />
+        </g>
+        <g>
+          <path d="M 40.00,109.80 C 41.79,117.48 44.33,118.96 57.50,120.00 C 44.33,121.04 41.79,122.52 40.00,130.20 C 38.21,122.52 35.67,121.04 22.50,120.00 C 35.67,118.96 38.21,117.48 40.00,109.80 Z" fill="url(#g-ev-star-core)" />
+          <path d="M 40.00,111.84 L 40.82,120.00 L 40.00,128.16 L 39.18,120.00 Z M 26.00,120.00 L 40.00,119.18 L 54.00,120.00 L 40.00,120.82 Z" fill="#FFFFFF" fill-opacity="0.88" />
+        </g>
+        <g>
+          <path d="M 200.00,109.80 C 201.79,117.48 204.33,118.96 217.50,120.00 C 204.33,121.04 201.79,122.52 200.00,130.20 C 198.21,122.52 195.67,121.04 182.50,120.00 C 195.67,118.96 198.21,117.48 200.00,109.80 Z" fill="url(#g-ev-star-core)" />
+          <path d="M 200.00,111.84 L 200.82,120.00 L 200.00,128.16 L 199.18,120.00 Z M 186.00,120.00 L 200.00,119.18 L 214.00,120.00 L 200.00,120.82 Z" fill="#FFFFFF" fill-opacity="0.88" />
+        </g>
+
+        <!-- 8 estrellas chicas en corona -->
+        <use href="#full-sm-star" x="153.75" y="50.79" />
+        <use href="#full-sm-star" x="189.21" y="86.25" />
+        <use href="#full-sm-star" x="189.21" y="153.75" />
+        <use href="#full-sm-star" x="153.75" y="189.21" />
+        <use href="#full-sm-star" x="86.25" y="189.21" />
+        <use href="#full-sm-star" x="50.79" y="153.75" />
+        <use href="#full-sm-star" x="50.79" y="86.25" />
+        <use href="#full-sm-star" x="86.25" y="50.79" />
+
+        <!-- Micro-estrellas orbitales -->
+        <use href="#full-micro-star" x="167.73" y="72.27" />
+        <use href="#full-micro-star" x="167.73" y="167.73" />
+        <use href="#full-micro-star" x="72.27" y="167.73" />
+        <use href="#full-micro-star" x="72.27" y="72.27" />
+
+        <!-- Polvo estelar -->
+        <g fill="#F4DFDD" fill-opacity="0.72">
+          <circle cx="139.13" cy="30.01" r="1.0" />
+          <circle cx="181.71" cy="46.46" r="1.2" />
+          <circle cx="217.81" cy="99.21" r="1.4" />
+          <circle cx="209.27" cy="142.26" r="1.0" />
+          <circle cx="184.24" cy="191.34" r="1.2" />
+          <circle cx="137.36" cy="218.48" r="1.4" />
+          <circle cx="97.74" cy="209.27" r="1.0" />
+          <circle cx="48.66" cy="184.24" r="1.2" />
+          <circle cx="22.97" cy="144.19" r="1.4" />
+          <circle cx="30.73" cy="97.74" r="1.0" />
+          <circle cx="53.31" cy="50.94" r="1.2" />
+          <circle cx="95.81" cy="22.97" r="1.4" />
+        </g>
+      </symbol>
+
+      <!-- SÍMBOLO 2: EMBLEMA REDUCIDO (108x108, zona segura circular 66 dp) -->
+      <symbol id="sym-emblema-reducido" viewBox="0 0 108 108">
+        <g>
+          <g clip-path="url(#c-moon-red)">
+            <circle cx="54" cy="54" r="13.5" fill="url(#g-ev-moon-dark)" />
+            <path d="M 56.34,40.71 A 13.5,13.5 0 1 1 47.66,65.92 C 53.0,59.2 56.1,51.0 56.34,40.71 Z" fill="url(#g-ev-moon-lit)" />
+          </g>
+          <circle cx="54" cy="54" r="13.5" fill="none" stroke="#7A131C" stroke-width="0.45" />
+        </g>
+        <g fill="url(#g-ev-silver)">
+          <path d="M 40.3,54 A 13.7,13.7 0 1 1 67.7,54 A 13.7,13.7 0 1 1 40.3,54 M 38.2,54 A 15.8,15.8 0 1 0 69.8,54 A 15.8,15.8 0 1 0 38.2,54 Z" fill-rule="evenodd" />
+          <path d="M 59.94,41.54 C 54.40,33.40 40.50,34.40 29.87,39.79 C 39.50,37.50 49.80,38.10 55.85,38.91 Q 58.05,40.08 59.94,41.54 Z" />
+          <path d="M 41.54,48.06 C 33.40,53.60 34.40,67.50 39.79,78.13 C 37.50,68.50 38.10,58.20 38.91,52.15 Q 40.08,49.95 41.54,48.06 Z" />
+          <path d="M 48.06,66.46 C 53.60,74.60 67.50,73.60 78.13,68.21 C 68.50,70.50 58.20,69.90 52.15,69.09 Q 49.95,67.92 48.06,66.46 Z" />
+          <path d="M 66.46,59.94 C 74.60,54.40 73.60,40.50 68.21,29.87 C 70.50,39.50 69.90,49.80 69.09,55.85 Q 67.92,58.05 66.46,59.94 Z" />
+        </g>
+        <g fill="#FFF5F3">
+          <path d="M 54.00,21.70 C 54.51,26.39 55.23,27.57 58.10,28.40 C 55.23,29.23 54.51,30.41 54.00,35.10 C 53.49,30.41 52.77,29.23 49.90,28.40 C 52.77,27.57 53.49,26.39 54.00,21.70 Z" />
+          <path d="M 54.00,72.90 C 54.51,77.59 55.23,78.77 58.10,79.60 C 55.23,80.43 54.51,81.61 54.00,86.30 C 53.49,81.61 52.77,80.43 49.90,79.60 C 52.77,78.77 53.49,77.59 54.00,72.90 Z" />
+          <path d="M 28.40,49.90 C 29.23,52.77 30.41,53.49 35.10,54.00 C 30.41,54.51 29.23,55.23 28.40,58.10 C 27.57,55.23 26.39,54.51 21.70,54.00 C 26.39,53.49 27.57,52.77 28.40,49.90 Z" />
+          <path d="M 79.60,49.90 C 80.43,52.77 81.61,53.49 86.30,54.00 C 81.61,54.51 80.43,55.23 79.60,58.10 C 78.77,55.23 77.59,54.51 72.90,54.00 C 77.59,53.49 78.77,52.77 79.60,49.90 Z" />
+        </g>
+      </symbol>
+
+      <!-- SÍMBOLO 3: EMBLEMA MONOCROMO (108x108, silueta limpia 1 color sin empastarse) -->
+      <symbol id="sym-emblema-monocromo" viewBox="0 0 108 108">
+        <g fill="currentColor">
+          <path d="M 55.94,42.97 A 11.2,11.2 0 1 1 48.74,63.89 C 53.6,58.6 56.2,51.4 55.94,42.97 Z" />
+          <path d="M 40.0,54 A 14.0,14.0 0 1 1 68.0,54 A 14.0,14.0 0 1 1 40.0,54 M 37.9,54 A 16.1,16.1 0 1 0 70.1,54 A 16.1,16.1 0 1 0 37.9,54 Z" fill-rule="evenodd" />
+          <path d="M 60.40,41.44 C 55.00,33.20 41.20,34.10 30.30,39.47 C 40.20,37.30 50.50,37.80 56.31,38.57 Q 58.52,39.91 60.40,41.44 Z" />
+          <path d="M 41.44,47.60 C 33.20,53.00 34.10,66.80 39.47,77.70 C 37.30,67.80 37.80,57.50 38.57,51.69 Q 39.91,49.48 41.44,47.60 Z" />
+          <path d="M 47.60,66.56 C 53.00,74.80 66.80,73.90 77.70,68.53 C 67.80,70.70 57.50,70.20 51.69,69.43 Q 49.48,68.09 47.60,66.56 Z" />
+          <path d="M 66.56,60.40 C 74.80,55.00 73.90,41.20 68.53,30.30 C 70.70,40.20 70.20,50.50 69.43,56.31 Q 68.09,58.52 66.56,60.40 Z" />
+          <path d="M 54.00,21.80 C 54.53,26.32 55.29,27.54 58.10,28.40 C 55.29,29.26 54.53,30.48 54.00,35.00 C 53.47,30.48 52.71,29.26 49.90,28.40 C 52.71,27.54 53.47,26.32 54.00,21.80 Z" />
+          <path d="M 54.00,73.00 C 54.53,77.52 55.29,78.74 58.10,79.60 C 55.29,80.46 54.53,81.68 54.00,86.20 C 53.47,81.68 52.71,80.46 49.90,79.60 C 52.71,78.74 53.47,77.52 54.00,73.00 Z" />
+          <path d="M 28.40,49.90 C 29.26,52.71 30.48,53.47 35.00,54.00 C 30.48,54.53 29.26,55.29 28.40,58.10 C 27.54,55.29 26.32,54.53 21.80,54.00 C 26.32,53.47 27.54,52.71 28.40,49.90 Z" />
+          <path d="M 79.60,49.90 C 80.46,52.71 81.68,53.47 86.20,54.00 C 81.68,54.53 80.46,55.29 79.60,58.10 C 78.74,55.29 77.52,54.53 73.00,54.00 C 77.52,53.47 78.74,52.71 79.60,49.90 Z" />
+        </g>
+      </symbol>
+
+      <!-- ============================================================
+           STICKERS DE MUESTRA (SVG INLINE: siluetas oscuras, trazos claros, transparencias)
+           ============================================================ -->
+      <symbol id="stk-gato" viewBox="0 0 64 64">
+        <path d="M 18,22 L 15,9 L 27,16 C 30,15 34,15 37,16 L 49,9 L 46,22 C 50,27 51,35 48,43 C 45,51 39,55 32,55 C 25,55 19,51 16,43 C 13,35 14,27 18,22 Z" fill="#181414" />
+        <ellipse cx="25.5" cy="32" rx="3.4" ry="4" fill="#F03A57" />
+        <ellipse cx="38.5" cy="32" rx="3.4" ry="4" fill="#F03A57" />
+        <ellipse cx="25.5" cy="32" rx="1.2" ry="3" fill="#181414" />
+        <ellipse cx="38.5" cy="32" rx="1.2" ry="3" fill="#181414" />
+        <circle cx="24.5" cy="30.5" r="0.9" fill="#FFF6F7" />
+        <circle cx="37.5" cy="30.5" r="0.9" fill="#FFF6F7" />
+        <path d="M 30,38 L 32,40 L 34,38" fill="none" stroke="#E8C6C4" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M 8,35 L 18,36 M 9,40 L 18,39 M 56,35 L 46,36 M 55,40 L 46,39" stroke="#181414" stroke-width="1.8" stroke-linecap="round" />
+      </symbol>
+
+      <symbol id="stk-mate" viewBox="0 0 64 64">
+        <path d="M 38,24 L 49,10" stroke="#7A7070" stroke-width="3.2" stroke-linecap="round" />
+        <ellipse cx="50" cy="9.5" rx="3" ry="1.6" transform="rotate(-38 50 9.5)" fill="#A99E9E" stroke="#221C1C" stroke-width="1.2" />
+        <path d="M 22,26 C 16,32 16,46 23,52 C 27,55 37,55 41,52 C 48,46 48,32 42,26 Z" fill="#7D442B" stroke="#1C1515" stroke-width="2.4" />
+        <ellipse cx="32" cy="26" rx="11" ry="4" fill="#3B6E43" stroke="#1C1515" stroke-width="2.2" />
+        <path d="M 21,26 L 21,30 C 21,32.5 43,32.5 43,30 L 43,26" fill="#C9A8A8" stroke="#1C1515" stroke-width="1.8" />
+        <path d="M 25,17 C 24,14 27,13 26,10 M 32,16 C 31,13 34,11 33,8" fill="none" stroke="#7D6B6B" stroke-width="1.6" stroke-linecap="round" opacity="0.65" />
+      </symbol>
+
+      <symbol id="stk-fantasma" viewBox="0 0 64 64">
+        <path d="M 16,32 C 16,18 23,11 32,11 C 41,11 48,18 48,32 L 48,51 C 45,51 43,47 40,47 C 37,47 35,52 32,52 C 29,52 27,47 24,47 C 21,47 19,51 16,51 Z" fill="#FFFFFF" fill-opacity="0.72" stroke="#362B2B" stroke-width="2" stroke-linejoin="round" />
+        <circle cx="26.5" cy="29" r="2.6" fill="#221B1B" />
+        <circle cx="37.5" cy="29" r="2.6" fill="#221B1B" />
+        <ellipse cx="22.5" cy="33.5" rx="2.6" ry="1.4" fill="#F03A57" opacity="0.45" />
+        <ellipse cx="41.5" cy="33.5" rx="2.6" ry="1.4" fill="#F03A57" opacity="0.45" />
+        <path d="M 29.5,34 Q 32,36.5 34.5,34" fill="none" stroke="#221B1B" stroke-width="1.8" stroke-linecap="round" />
+      </symbol>
+
+      <symbol id="stk-polilla" viewBox="0 0 64 64">
+        <path d="M 32,26 C 24,15 11,13 8,22 C 6,29 14,35 23,36 C 14,39 12,48 19,51 C 25,53 29,46 31,38 Z" fill="#1F1819" stroke="#110D0D" stroke-width="1.5" />
+        <path d="M 32,26 C 40,15 53,13 56,22 C 58,29 50,35 41,36 C 50,39 52,48 45,51 C 39,53 35,46 33,38 Z" fill="#1F1819" stroke="#110D0D" stroke-width="1.5" />
+        <circle cx="19" cy="25" r="3.4" fill="none" stroke="#F4DFE0" stroke-width="1.6" />
+        <circle cx="45" cy="25" r="3.4" fill="none" stroke="#F4DFE0" stroke-width="1.6" />
+        <circle cx="22" cy="44" r="2" fill="#E83350" />
+        <circle cx="42" cy="44" r="2" fill="#E83350" />
+        <ellipse cx="32" cy="34" rx="3.4" ry="11" fill="#3A2A2C" />
+        <path d="M 30,22 C 27,16 24,14 22,14 M 34,22 C 37,16 40,14 42,14" fill="none" stroke="#1F1819" stroke-width="1.8" stroke-linecap="round" />
+      </symbol>
+
+      <symbol id="stk-luna" viewBox="0 0 64 64">
+        <path d="M 39,13 C 25,13 15,23 15,35 C 15,47 26,55 39,53 C 45,52 50,48 53,43 C 44,45 34,39 32,30 C 30,22 33,16 39,13 Z" fill="#F2B84B" stroke="#1E1717" stroke-width="2.2" stroke-linejoin="round" />
+        <path d="M 22,35 Q 24.5,37.5 27,35" fill="none" stroke="#1E1717" stroke-width="2" stroke-linecap="round" />
+        <path d="M 44,16 L 45.5,20.5 L 50,22 L 45.5,23.5 L 44,28 L 42.5,23.5 L 38,22 L 42.5,20.5 Z" fill="#BD1736" />
+      </symbol>
+
+      <symbol id="stk-cafe" viewBox="0 0 64 64">
+        <path d="M 15,27 L 43,27 L 40,49 C 39.5,52 36,54 29,54 C 22,54 18.5,52 18,49 Z" fill="#231C1C" stroke="#120E0E" stroke-width="2" />
+        <path d="M 42.5,31 C 50,31 51,42 41.5,43" fill="none" stroke="#231C1C" stroke-width="3.6" stroke-linecap="round" />
+        <path d="M 23,36 L 35,36" stroke="#E8C6C4" stroke-width="2" stroke-linecap="round" />
+        <path d="M 23,21 C 21,17 26,15 24,11 M 31,20 C 29,16 34,14 32,10 M 38,21 C 36,18 40,16 38,13" fill="none" stroke="#6E5B5B" stroke-width="1.8" stroke-linecap="round" opacity="0.72" />
+      </symbol>
+
+      <symbol id="stk-rosa" viewBox="0 0 64 64">
+        <path d="M 32,37 L 32,56" stroke="#2B4F33" stroke-width="2.6" stroke-linecap="round" />
+        <path d="M 32,48 C 24,47 21,42 22,39 C 26,39 30,43 32,48 Z" fill="#3B6E43" stroke="#181414" stroke-width="1.6" />
+        <path d="M 32,46 C 40,45 43,40 42,37 C 38,37 34,41 32,46 Z" fill="#3B6E43" stroke="#181414" stroke-width="1.6" />
+        <circle cx="32" cy="25" r="14" fill="#BD1736" stroke="#181414" stroke-width="2.2" />
+        <path d="M 25,22 C 26,16 36,15 39,21 C 41,26 36,33 29,32 C 24,31 23,25 27,22 C 30,20 35,22 34,26 C 33,28 30,28 29,26" fill="none" stroke="#FFF4F4" stroke-width="1.8" stroke-linecap="round" />
+      </symbol>
+
+      <symbol id="stk-cuervo" viewBox="0 0 64 64">
+        <path d="M 14,48 L 28,36 C 26,26 30,17 38,15 C 43,14 47,16 49,19 L 55,20 L 49,24 C 48,33 42,41 34,45 L 22,52 Z" fill="#171313" />
+        <circle cx="42.5" cy="19.5" r="1.8" fill="#FFF5F5" />
+        <path d="M 31,45 L 30,54 M 36,43 L 38,54" stroke="#171313" stroke-width="2.2" stroke-linecap="round" />
+        <path d="M 28,28 C 33,27 38,30 40,35" fill="none" stroke="#E8C6C4" stroke-width="1.4" stroke-linecap="round" opacity="0.65" />
+      </symbol>
+
+      <symbol id="stk-nube" viewBox="0 0 64 64">
+        <path d="M 18,45 C 12,45 9,41 9,36 C 9,31.5 12.5,28 17,28 C 18.5,21 24.5,16 32,16 C 39.5,16 45,21 46,27.5 C 51,28 55,32 55,36.5 C 55,41.5 51,45 45.5,45 Z" fill="#FFFFFF" fill-opacity="0.82" stroke="#5E4F4F" stroke-width="2" stroke-linejoin="round" />
+        <circle cx="26" cy="34" r="1.9" fill="#3B3131" />
+        <circle cx="38" cy="34" r="1.9" fill="#3B3131" />
+        <path d="M 30,37.5 Q 32,39.5 34,37.5" fill="none" stroke="#3B3131" stroke-width="1.6" stroke-linecap="round" />
+        <path d="M 22,51 L 20,55 M 32,51 L 30,55 M 42,51 L 40,55" stroke="#8C7373" stroke-width="2" stroke-linecap="round" />
+      </symbol>
+
+      <symbol id="stk-animado" viewBox="0 0 64 64">
+        <path d="M 10,46 C 18,44 25,39 32,32" fill="none" stroke="#BD1736" stroke-width="3.2" stroke-linecap="round" opacity="0.5" />
+        <path d="M 14,52 C 22,48 29,43 35,36" fill="none" stroke="#E83350" stroke-width="2.2" stroke-linecap="round" opacity="0.72" />
+        <path d="M 38,12 L 42,24 L 54,28 L 42,32 L 38,44 L 34,32 L 22,28 L 34,24 Z" fill="#F03A57" stroke="#1A1414" stroke-width="2" stroke-linejoin="round" />
+        <circle cx="38" cy="28" r="3" fill="#FFF5F5" />
+      </symbol>
+
+      <symbol id="stk-calavera" viewBox="0 0 64 64">
+        <path d="M 17,30 C 17,18 24,12 32,12 C 40,12 47,18 47,30 C 47,37 44,41 41,43 L 41,51 L 23,51 L 23,43 C 20,41 17,37 17,30 Z" fill="#FFFFFF" stroke="#191414" stroke-width="2.2" stroke-linejoin="round" />
+        <circle cx="25.5" cy="30" r="4.2" fill="#191414" />
+        <circle cx="38.5" cy="30" r="4.2" fill="#191414" />
+        <path d="M 32,35 L 30,40 L 34,40 Z" fill="#191414" />
+        <path d="M 28,46 L 28,51 M 32,46 L 32,51 M 36,46 L 36,51" stroke="#191414" stroke-width="2" />
+      </symbol>
+
+      <symbol id="stk-linterna" viewBox="0 0 64 64">
+        <path d="M 26,14 L 38,14 L 41,20 L 23,20 Z" fill="#231C1C" stroke="#120E0E" stroke-width="1.6" />
+        <rect x="21" y="20" width="22" height="26" rx="4" fill="#FFF0E6" stroke="#1E1717" stroke-width="2.2" />
+        <circle cx="32" cy="33" r="6" fill="#F03A57" opacity="0.88" />
+        <circle cx="32" cy="33" r="2.5" fill="#FFF8F8" />
+        <path d="M 22,46 L 42,46 L 39,52 L 25,52 Z" fill="#231C1C" stroke="#120E0E" stroke-width="1.6" />
+        <path d="M 29,14 C 29,9 35,9 35,14" fill="none" stroke="#231C1C" stroke-width="2" />
+      </symbol>
+
+      <symbol id="stk-pocion" viewBox="0 0 64 64">
+        <path d="M 27,12 L 37,12 L 37,18 L 35,23 L 48,37 C 51,41 49,51 42,51 L 22,51 C 15,51 13,41 16,37 L 29,23 L 27,18 Z" fill="#FFFFFF" stroke="#181111" stroke-width="2.3" stroke-linejoin="round" />
+        <path d="M 18,39 C 25,36 39,42 46,39 L 45,47 C 44,49 41,49 32,49 C 23,49 20,49 19,47 Z" fill="#C81E2B" />
+        <path d="M 32,29 L 33.5,33 L 37.5,34.5 L 33.5,36 L 32,40 L 30.5,36 L 26.5,34.5 L 30.5,33 Z" fill="#181111" />
+      </symbol>
+
+      <symbol id="stk-sello" viewBox="0 0 64 64">
+        <circle cx="32" cy="32" r="20" fill="none" stroke="#181111" stroke-width="2.4" stroke-dasharray="5 3" />
+        <path d="M 32,14 C 34,26 38,30 50,32 C 38,34 34,38 32,50 C 30,38 26,34 14,32 C 26,30 30,26 32,14 Z" fill="#181111" />
+        <circle cx="32" cy="32" r="4" fill="#E02836" />
+      </symbol>
+    </defs>
+  </svg>
+
+  <main class="board">
+    <header class="board-header">
+      <h1 class="board-title">StickerCreator · Identidad Evernight <span>Opción Neon v2 — Astrolabio Táctil (emblema y cielo de B)</span></h1>
+      <div class="board-meta">Android · 390 × 844 dp · Modo oscuro exclusivo · WCAG AA verificado</div>
+    </header>
+
+    <section class="screens-row">
+      <!-- ============================================================
+           PANTALLA 1 — PantallaPaquetes EN REPOSO
+           ============================================================ -->
+      <div class="screen-col">
+        <div class="screen-label">
+          <span class="screen-label-main">1 · PantallaPaquetes en reposo</span>
+          <span class="screen-label-tag">390 × 844 dp</span>
+        </div>
+
+        <div class="phone-frame">
+          <div class="phone-screen">
+            <!-- Arcos celestes y constelaciones fijas (adoptados de B) -->
+            <svg class="star-chart" viewBox="0 0 390 844" fill="none" aria-hidden="true">
+              <ellipse cx="195" cy="88" rx="164" ry="84" stroke="#E2C4C1" stroke-opacity="0.14" stroke-width="0.8" stroke-dasharray="3 5" />
+              <ellipse cx="195" cy="88" rx="124" ry="62" stroke="#C81E2B" stroke-opacity="0.20" stroke-width="0.8" />
+              <polyline points="26,54 54,42 82,60 66,88" stroke="#E2C4C1" stroke-opacity="0.24" stroke-width="0.75" />
+              <circle cx="26" cy="54" r="1.5" fill="#F5E9E7" fill-opacity="0.55" />
+              <circle cx="54" cy="42" r="1.8" fill="#F5E9E7" fill-opacity="0.65" />
+              <circle cx="82" cy="60" r="1.4" fill="#F5E9E7" fill-opacity="0.50" />
+              <circle cx="66" cy="88" r="1.2" fill="#F5E9E7" fill-opacity="0.45" />
+              <polyline points="362,50 332,40 308,64 328,90" stroke="#E2C4C1" stroke-opacity="0.24" stroke-width="0.75" />
+              <circle cx="362" cy="50" r="1.5" fill="#F5E9E7" fill-opacity="0.55" />
+              <circle cx="332" cy="40" r="1.8" fill="#F5E9E7" fill-opacity="0.65" />
+              <circle cx="308" cy="64" r="1.4" fill="#F5E9E7" fill-opacity="0.50" />
+              <circle cx="328" cy="90" r="1.2" fill="#F5E9E7" fill-opacity="0.45" />
+              <path d="M 18,492 Q 195,470 372,492" stroke="#E2C4C1" stroke-opacity="0.14" stroke-width="0.75" stroke-dasharray="2 4" />
+              <circle cx="14" cy="360" r="1.2" fill="#F5E9E7" fill-opacity="0.34" />
+              <circle cx="376" cy="432" r="1.3" fill="#F5E9E7" fill-opacity="0.36" />
+              <circle cx="18" cy="692" r="1.1" fill="#F5E9E7" fill-opacity="0.30" />
+              <circle cx="374" cy="706" r="1.2" fill="#F5E9E7" fill-opacity="0.32" />
+            </svg>
+
+            <div class="status-bar">
+              <span>9:41</span>
+              <div class="status-icons" aria-hidden="true">
+                <svg width="14" height="11" viewBox="0 0 14 11" fill="currentColor"><rect x="0" y="7" width="2.2" height="4" rx="0.6" /><rect x="3.5" y="5" width="2.2" height="6" rx="0.6" /><rect x="7" y="2.5" width="2.2" height="8.5" rx="0.6" /><rect x="10.5" y="0" width="2.2" height="11" rx="0.6" /></svg>
+                <svg width="14" height="11" viewBox="0 0 14 11" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M1.5 3.8C4.5 1.1 9.5 1.1 12.5 3.8" /><path d="M3.8 6.4C5.6 4.8 8.4 4.8 10.2 6.4" /><circle cx="7" cy="9.2" r="1.1" fill="currentColor" stroke="none" /></svg>
+                <svg width="20" height="11" viewBox="0 0 20 11" fill="none"><rect x="0.7" y="1" width="16.5" height="9" rx="2.2" stroke="currentColor" stroke-width="1.2" /><rect x="2.4" y="2.7" width="11.5" height="5.6" rx="1" fill="currentColor" /><rect x="18" y="3.5" width="1.6" height="4" rx="0.7" fill="currentColor" /></svg>
+              </div>
+            </div>
+
+            <div class="scroll-content">
+              <!-- Banner compacto con sello a la izquierda (scrollea con la lista) -->
+              <section class="hero-banner" aria-label="Encabezado de StickerCreator">
+                <svg class="hero-banner-ticks" viewBox="0 0 110 96" aria-hidden="true">
+                  <circle cx="110" cy="48" r="68" fill="none" stroke="#E2C4C1" stroke-width="0.75" stroke-dasharray="2 5" />
+                  <circle cx="110" cy="48" r="52" fill="none" stroke="#E2C4C1" stroke-width="0.6" stroke-opacity="0.55" />
+                  <line x1="60" y1="48" x2="70" y2="48" stroke="#E2C4C1" stroke-width="0.8" />
+                  <line x1="72" y1="20" x2="79" y2="25" stroke="#E2C4C1" stroke-width="0.8" />
+                  <line x1="72" y1="76" x2="79" y2="71" stroke="#E2C4C1" stroke-width="0.8" />
+                </svg>
+                <div class="hero-emblem-wrap">
+                  <svg width="68" height="68" viewBox="0 0 240 240"><use href="#sym-emblema-completo" x="0" y="0" width="240" height="240" /></svg>
+                </div>
+                <div class="hero-info">
+                  <div class="app-title">StickerCreator</div>
+                  <div class="summary-pill">
+                    <span>3 paquetes</span>
+                    <span class="summary-pill-dot"></span>
+                    <span>16 stickers</span>
+                  </div>
+                </div>
+              </section>
+
+              <!-- Tarjeta 1: Mis stickers 2 (9/30 · En WhatsApp · fila reservada #18 · 9 baldosas) -->
+              <article class="pkg-card">
+                <div class="pkg-header">
+                  <div class="pkg-title-row">
+                    <h2 class="pkg-name">Mis stickers 2</h2>
+                    <span class="counter-pill">9/30</span>
+                  </div>
+                  <div class="pkg-status-row">
+                    <span class="wa-dot" aria-hidden="true"></span>
+                    <span>En WhatsApp</span>
+                  </div>
+                  <div class="pkg-pending-row">
+                    <span class="pkg-pending-text">4 sin pasar a WhatsApp</span>
+                    <button type="button" class="btn-mini-hit" aria-label="Actualizar paquete en WhatsApp">
+                      <span class="btn-mini-pill">Actualizar</span>
+                    </button>
+                  </div>
+                </div>
+                <div class="pkg-body">
+                  <div class="sticker-grid">
+                    <div class="sticker-tile"><svg class="sticker-art" viewBox="0 0 64 64"><use href="#stk-gato" x="0" y="0" width="64" height="64" /></svg></div>
+                    <div class="sticker-tile"><svg class="sticker-art" viewBox="0 0 64 64"><use href="#stk-mate" x="0" y="0" width="64" height="64" /></svg></div>
+                    <div class="sticker-tile"><svg class="sticker-art" viewBox="0 0 64 64"><use href="#stk-fantasma" x="0" y="0" width="64" height="64" /></svg></div>
+                    <div class="sticker-tile"><svg class="sticker-art" viewBox="0 0 64 64"><use href="#stk-polilla" x="0" y="0" width="64" height="64" /></svg></div>
+                    <div class="sticker-tile"><svg class="sticker-art" viewBox="0 0 64 64"><use href="#stk-luna" x="0" y="0" width="64" height="64" /></svg></div>
+                    <div class="sticker-tile"><svg class="sticker-art" viewBox="0 0 64 64"><use href="#stk-cafe" x="0" y="0" width="64" height="64" /></svg></div>
+                    <div class="sticker-tile"><svg class="sticker-art" viewBox="0 0 64 64"><use href="#stk-rosa" x="0" y="0" width="64" height="64" /></svg></div>
+                    <div class="sticker-tile"><svg class="sticker-art" viewBox="0 0 64 64"><use href="#stk-cuervo" x="0" y="0" width="64" height="64" /></svg></div>
+                    <div class="sticker-tile"><svg class="sticker-art" viewBox="0 0 64 64"><use href="#stk-nube" x="0" y="0" width="64" height="64" /></svg></div>
+                  </div>
+                </div>
+              </article>
+
+              <!-- Tarjeta 2: Mis stickers animados (1/30 · Faltan 2 · 1 baldosa · botón inactivo) -->
+              <article class="pkg-card">
+                <div class="pkg-header">
+                  <div class="pkg-title-row">
+                    <h2 class="pkg-name">Mis stickers animados</h2>
+                    <span class="counter-pill">1/30</span>
+                  </div>
+                  <div class="pkg-status-row muted">
+                    <span>Faltan 2 para agregarlo</span>
+                  </div>
+                </div>
+                <div class="pkg-body">
+                  <div class="sticker-grid">
+                    <div class="sticker-tile">
+                      <svg class="sticker-art" viewBox="0 0 64 64"><use href="#stk-animado" x="0" y="0" width="64" height="64" /></svg>
+                      <span class="anim-tag">Animado</span>
+                    </div>
+                  </div>
+                  <button type="button" class="btn-add-wa disabled" disabled>Agregar a WhatsApp</button>
+                </div>
+              </article>
+
+              <!-- Tarjeta 3 asomando al pie: Mis stickers (6/30 · Listo para agregar a WhatsApp) -->
+              <article class="pkg-card">
+                <div class="pkg-header">
+                  <div class="pkg-title-row">
+                    <h2 class="pkg-name">Mis stickers</h2>
+                    <span class="counter-pill">6/30</span>
+                  </div>
+                  <div class="pkg-status-row">
+                    <span>Listo para agregar a WhatsApp</span>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <!-- Zona fija inferior en reposo -->
+            <div class="bottom-dock">
+              <button type="button" class="cta-primary">
+                <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="2.5" y="3.5" width="15" height="13" rx="2.5" />
+                  <circle cx="7.2" cy="8" r="1.4" fill="currentColor" stroke="none" />
+                  <path d="M3.5 14l4-4 3 3 2.3-2.3 3.7 3.3" />
+                </svg>
+                <span>Elegir de la galería</span>
+              </button>
+              <div class="gesture-bar" aria-hidden="true"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           PANTALLA 2 — PantallaPaquetes EN ACCIÓN + TIRA DE ESTADOS
+           ============================================================ -->
+      <div class="screen-col">
+        <div class="screen-label">
+          <span class="screen-label-main">2 · En acción: selección, avisos y tanda</span>
+          <span class="screen-label-tag">390 × 844 dp · scrolleada</span>
+        </div>
+
+        <div class="phone-frame">
+          <div class="phone-screen scrolled-bg">
+            <!-- Constelaciones y arcos visibles detrás de las tarjetas al scrollear (de B) -->
+            <svg class="star-chart" viewBox="0 0 390 844" fill="none" aria-hidden="true">
+              <path d="M 14,44 Q 195,20 376,44" stroke="#E2C4C1" stroke-opacity="0.16" stroke-width="0.8" stroke-dasharray="2.5 4.5" />
+              <polyline points="42,28 88,36 128,24 166,40" stroke="#E2C4C1" stroke-opacity="0.24" stroke-width="0.8" />
+              <circle cx="42" cy="28" r="1.5" fill="#F5E9E7" fill-opacity="0.60" />
+              <circle cx="88" cy="36" r="1.7" fill="#F5E9E7" fill-opacity="0.65" />
+              <circle cx="128" cy="24" r="1.4" fill="#F5E9E7" fill-opacity="0.55" />
+              <circle cx="166" cy="40" r="1.3" fill="#F5E9E7" fill-opacity="0.50" />
+
+              <polyline points="248,38 292,24 338,36 364,22" stroke="#E2C4C1" stroke-opacity="0.24" stroke-width="0.8" />
+              <circle cx="248" cy="38" r="1.4" fill="#F5E9E7" fill-opacity="0.55" />
+              <circle cx="292" cy="24" r="1.8" fill="#F5E9E7" fill-opacity="0.65" />
+              <circle cx="338" cy="36" r="1.5" fill="#F5E9E7" fill-opacity="0.60" />
+
+              <path d="M 24,256 Q 195,238 366,256" stroke="#E2C4C1" stroke-opacity="0.14" stroke-width="0.75" stroke-dasharray="2 4" />
+
+              <path d="M 24,620 Q 195,596 366,620" stroke="#E2C4C1" stroke-opacity="0.16" stroke-width="0.8" stroke-dasharray="2 4.5" />
+              <polyline points="48,638 106,660 158,646 206,668" stroke="#E2C4C1" stroke-opacity="0.20" stroke-width="0.75" />
+              <circle cx="48" cy="638" r="1.4" fill="#F5E9E7" fill-opacity="0.50" />
+              <circle cx="106" cy="660" r="1.7" fill="#F5E9E7" fill-opacity="0.62" />
+              <circle cx="158" cy="646" r="1.3" fill="#F5E9E7" fill-opacity="0.50" />
+              <circle cx="206" cy="668" r="1.5" fill="#F5E9E7" fill-opacity="0.55" />
+              <polyline points="274,648 318,632 356,654" stroke="#E2C4C1" stroke-opacity="0.20" stroke-width="0.75" />
+              <circle cx="274" cy="648" r="1.3" fill="#F5E9E7" fill-opacity="0.48" />
+              <circle cx="318" cy="632" r="1.7" fill="#F5E9E7" fill-opacity="0.60" />
+              <circle cx="356" cy="654" r="1.4" fill="#F5E9E7" fill-opacity="0.52" />
+            </svg>
+
+            <div class="status-bar">
+              <span>9:42</span>
+              <div class="status-icons" aria-hidden="true">
+                <svg width="14" height="11" viewBox="0 0 14 11" fill="currentColor"><rect x="0" y="7" width="2.2" height="4" rx="0.6" /><rect x="3.5" y="5" width="2.2" height="6" rx="0.6" /><rect x="7" y="2.5" width="2.2" height="8.5" rx="0.6" /><rect x="10.5" y="0" width="2.2" height="11" rx="0.6" /></svg>
+                <svg width="14" height="11" viewBox="0 0 14 11" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M1.5 3.8C4.5 1.1 9.5 1.1 12.5 3.8" /><path d="M3.8 6.4C5.6 4.8 8.4 4.8 10.2 6.4" /><circle cx="7" cy="9.2" r="1.1" fill="currentColor" stroke="none" /></svg>
+                <svg width="20" height="11" viewBox="0 0 20 11" fill="none"><rect x="0.7" y="1" width="16.5" height="9" rx="2.2" stroke="currentColor" stroke-width="1.2" /><rect x="2.4" y="2.7" width="11.5" height="5.6" rx="1" fill="currentColor" /><rect x="18" y="3.5" width="1.6" height="4" rx="0.7" fill="currentColor" /></svg>
+              </div>
+            </div>
+
+            <!-- Misma lista scrolleada hacia abajo (mismo orden y estados que Pantalla 1: Tarjeta 2 y Tarjeta 3) -->
+            <div class="scroll-content scrolled">
+              <!-- Tarjeta 2: Mis stickers animados (idéntica a Pantalla 1: 1/30 · Faltan 2 · botón inactivo) -->
+              <article class="pkg-card">
+                <div class="pkg-header">
+                  <div class="pkg-title-row">
+                    <h2 class="pkg-name">Mis stickers animados</h2>
+                    <span class="counter-pill">1/30</span>
+                  </div>
+                  <div class="pkg-status-row muted">
+                    <span>Faltan 2 para agregarlo</span>
+                  </div>
+                </div>
+                <div class="pkg-body">
+                  <div class="sticker-grid">
+                    <div class="sticker-tile" data-selectable>
+                      <svg class="sticker-art" viewBox="0 0 64 64"><use href="#stk-animado" x="0" y="0" width="64" height="64" /></svg>
+                      <span class="anim-tag">Animado</span>
+                      <span class="check-badge">✓</span>
+                    </div>
+                  </div>
+                  <button type="button" class="btn-add-wa disabled" disabled>Agregar a WhatsApp</button>
+                </div>
+              </article>
+
+              <!-- Tarjeta 3: Mis stickers (idéntica a Pantalla 1: 6/30 · Listo para agregar a WhatsApp · 6 baldosas, 3 marcadas) -->
+              <article class="pkg-card">
+                <div class="pkg-header">
+                  <div class="pkg-title-row">
+                    <h2 class="pkg-name">Mis stickers</h2>
+                    <span class="counter-pill">6/30</span>
+                  </div>
+                  <div class="pkg-status-row">
+                    <span>Listo para agregar a WhatsApp</span>
+                  </div>
+                </div>
+                <div class="pkg-body">
+                  <div class="sticker-grid" id="interactive-grid">
+                    <div class="sticker-tile selected" data-selectable><svg class="sticker-art" viewBox="0 0 64 64"><use href="#stk-calavera" x="0" y="0" width="64" height="64" /></svg><span class="check-badge">✓</span></div>
+                    <div class="sticker-tile" data-selectable><svg class="sticker-art" viewBox="0 0 64 64"><use href="#stk-linterna" x="0" y="0" width="64" height="64" /></svg><span class="check-badge">✓</span></div>
+                    <div class="sticker-tile selected" data-selectable><svg class="sticker-art" viewBox="0 0 64 64"><use href="#stk-pocion" x="0" y="0" width="64" height="64" /></svg><span class="check-badge">✓</span></div>
+                    <div class="sticker-tile" data-selectable><svg class="sticker-art" viewBox="0 0 64 64"><use href="#stk-sello" x="0" y="0" width="64" height="64" /></svg><span class="check-badge">✓</span></div>
+                    <div class="sticker-tile selected" data-selectable><svg class="sticker-art" viewBox="0 0 64 64"><use href="#stk-rosa" x="0" y="0" width="64" height="64" /></svg><span class="check-badge">✓</span></div>
+                    <div class="sticker-tile" data-selectable><svg class="sticker-art" viewBox="0 0 64 64"><use href="#stk-cuervo" x="0" y="0" width="64" height="64" /></svg><span class="check-badge">✓</span></div>
+                  </div>
+                  <button type="button" class="btn-add-wa">
+                    <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                      <path d="M9 3.5v11M3.5 9h11" />
+                    </svg>
+                    <span>Agregar a WhatsApp</span>
+                  </button>
+                </div>
+              </article>
+            </div>
+
+            <!-- Aviso informativo ⓘ + Barra de selección fija abajo -->
+            <div class="bottom-dock">
+              <div class="notice-bar notice-info" role="status">
+                <span class="notice-info-icon" aria-hidden="true">ⓘ</span>
+                <span>3 stickers creados · 1 tramo se acortó a 3 s</span>
+              </div>
+
+              <div class="selection-bar">
+                <button type="button" class="btn-cancel" id="btn-cancel-sel">Cancelar</button>
+                <button type="button" class="btn-delete" id="btn-delete-sel">
+                  <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M3.5 5h11M7 5V3.5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1V5M5 5l.8 9.2a1.3 1.3 0 0 0 1.3 1.2h3.8a1.3 1.3 0 0 0 1.3-1.2L13 5" />
+                  </svg>
+                  <span id="delete-count-label">Borrar (3)</span>
+                </button>
+              </div>
+              <div class="gesture-bar" aria-hidden="true"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tira de estados complementarios debajo de Pantalla 2 -->
+        <aside class="states-strip" aria-label="Estados complementarios del bloque inferior">
+          <div class="states-strip-title">Estados complementarios del bloque inferior</div>
+
+          <div class="state-block">
+            <div class="state-caption">
+              <span>Tanda en curso (issue #22)</span>
+              <span>38 %</span>
+            </div>
+            <div class="cta-busy" role="progressbar" aria-valuenow="38" aria-valuemin="0" aria-valuemax="100">
+              <span>Convirtiendo 3 de 8…</span>
+              <span class="cta-busy-pct">38 %</span>
+              <div class="progress-track">
+                <div class="progress-fill"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="state-block">
+            <div class="state-caption">
+              <span>Aviso de error</span>
+              <span>WCAG AA · 9.7:1</span>
+            </div>
+            <div class="notice-bar notice-error" role="alert">
+              <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="#F25C54" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0" aria-hidden="true">
+                <path d="M9 2.8L16 15H2L9 2.8Z" />
+                <line x1="9" y1="7.2" x2="9" y2="10.8" />
+                <circle cx="9" cy="13" r="0.8" fill="#F25C54" stroke="none" />
+              </svg>
+              <span>No se pudo crear el sticker: archivo dañado</span>
+            </div>
+          </div>
+
+          <div class="state-block">
+            <div class="state-caption">
+              <span>Aviso normal</span>
+              <span>Confirmación neutra</span>
+            </div>
+            <div class="notice-bar notice-normal">
+              <span>Sticker borrado</span>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <!-- ============================================================
+           PANTALLA 3 — HOJA DE IDENTIDAD: SPLASH + ÍCONO ADAPTATIVO
+           ============================================================ -->
+      <div class="screen-col">
+        <div class="screen-label">
+          <span class="screen-label-main">3 · Hoja de identidad: Splash + Ícono adaptativo Android</span>
+          <span class="screen-label-tag">app.json · 108 dp</span>
+        </div>
+
+        <div class="identity-grid">
+          <!-- Frame móvil completo: Splash (fondo y constelaciones de B, sin texto técnico) -->
+          <div class="phone-frame">
+            <div class="phone-screen splash-bg">
+              <svg class="star-chart" viewBox="0 0 390 844" fill="none" aria-hidden="true">
+                <circle cx="195" cy="378" r="168" stroke="#E2C4C1" stroke-opacity="0.12" stroke-width="0.75" stroke-dasharray="2 5" />
+                <circle cx="195" cy="378" r="136" stroke="#C81E2B" stroke-opacity="0.20" stroke-width="0.8" />
+
+                <polyline points="46,128 84,108 128,130 148,166" stroke="#E2C4C1" stroke-opacity="0.22" stroke-width="0.8" />
+                <circle cx="46" cy="128" r="1.6" fill="#F5E9E7" fill-opacity="0.60" />
+                <circle cx="84" cy="108" r="2.0" fill="#F5E9E7" fill-opacity="0.70" />
+                <circle cx="128" cy="130" r="1.4" fill="#F5E9E7" fill-opacity="0.55" />
+                <circle cx="148" cy="166" r="1.2" fill="#F5E9E7" fill-opacity="0.45" />
+
+                <polyline points="342,144 304,116 266,138" stroke="#E2C4C1" stroke-opacity="0.20" stroke-width="0.8" />
+                <circle cx="342" cy="144" r="1.5" fill="#F5E9E7" fill-opacity="0.55" />
+                <circle cx="304" cy="116" r="1.8" fill="#F5E9E7" fill-opacity="0.65" />
+                <circle cx="266" cy="138" r="1.4" fill="#F5E9E7" fill-opacity="0.50" />
+
+                <polyline points="68,662 118,686 168,672 214,696" stroke="#E2C4C1" stroke-opacity="0.18" stroke-width="0.75" />
+                <circle cx="68" cy="662" r="1.4" fill="#F5E9E7" fill-opacity="0.50" />
+                <circle cx="118" cy="686" r="1.7" fill="#F5E9E7" fill-opacity="0.60" />
+                <circle cx="168" cy="672" r="1.3" fill="#F5E9E7" fill-opacity="0.50" />
+                <circle cx="214" cy="696" r="1.5" fill="#F5E9E7" fill-opacity="0.55" />
+              </svg>
+
+              <div class="status-bar">
+                <span>9:41</span>
+                <div class="status-icons" aria-hidden="true">
+                  <svg width="14" height="11" viewBox="0 0 14 11" fill="currentColor"><rect x="0" y="7" width="2.2" height="4" rx="0.6" /><rect x="3.5" y="5" width="2.2" height="6" rx="0.6" /><rect x="7" y="2.5" width="2.2" height="8.5" rx="0.6" /><rect x="10.5" y="0" width="2.2" height="11" rx="0.6" /></svg>
+                  <svg width="20" height="11" viewBox="0 0 20 11" fill="none"><rect x="0.7" y="1" width="16.5" height="9" rx="2.2" stroke="currentColor" stroke-width="1.2" /><rect x="2.4" y="2.7" width="11.5" height="5.6" rx="1" fill="currentColor" /><rect x="18" y="3.5" width="1.6" height="4" rx="0.7" fill="currentColor" /></svg>
+                </div>
+              </div>
+
+              <div class="splash-body">
+                <div class="splash-emblem-stage">
+                  <svg width="204" height="204" viewBox="0 0 240 240"><use href="#sym-emblema-completo" x="0" y="0" width="240" height="240" /></svg>
+                </div>
+                <div class="splash-wordmark">StickerCreator</div>
+                <div class="splash-ornament" aria-hidden="true">
+                  <span>───</span>
+                  <span>✦</span>
+                  <span>───</span>
+                </div>
+              </div>
+
+              <div class="splash-footer">
+                <div class="gesture-bar" aria-hidden="true"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Panel de Ícono Adaptativo Android (máscaras reales centradas + zona segura + monocromo) -->
+          <div class="icon-lab">
+            <!-- 1. Composición final en máscaras reales -->
+            <section class="lab-card">
+              <div class="lab-card-head">
+                <span class="lab-card-title">Ícono en máscaras Android</span>
+                <span class="lab-card-sub">72 / 108 dp</span>
+              </div>
+              <div class="masks-row">
+                <!-- Círculo -->
+                <div class="mask-item">
+                  <svg width="68" height="68" viewBox="18 18 72 72" style="border-radius:50%;box-shadow:0 6px 14px rgba(0,0,0,0.55);border:1px solid rgba(235,204,201,0.2)">
+                    <rect x="0" y="0" width="108" height="108" fill="url(#g-icon-bg-glow)" />
+                    <use href="#sym-emblema-reducido" x="0" y="0" width="108" height="108" />
+                  </svg>
+                  <span class="mask-caption">Círculo</span>
+                </div>
+                <!-- Squircle -->
+                <div class="mask-item">
+                  <svg width="68" height="68" viewBox="18 18 72 72" style="clip-path:url(#c-mask-squircle);filter:drop-shadow(0 6px 10px rgba(0,0,0,0.55))">
+                    <rect x="0" y="0" width="108" height="108" fill="url(#g-icon-bg-glow)" />
+                    <use href="#sym-emblema-reducido" x="0" y="0" width="108" height="108" />
+                  </svg>
+                  <span class="mask-caption">Squircle</span>
+                </div>
+                <!-- Cuadrado redondeado -->
+                <div class="mask-item">
+                  <svg width="68" height="68" viewBox="18 18 72 72" style="border-radius:16px;box-shadow:0 6px 14px rgba(0,0,0,0.55);border:1px solid rgba(235,204,201,0.2)">
+                    <rect x="0" y="0" width="108" height="108" fill="url(#g-icon-bg-glow)" />
+                    <use href="#sym-emblema-reducido" x="0" y="0" width="108" height="108" />
+                  </svg>
+                  <span class="mask-caption">Cuadrado</span>
+                </div>
+              </div>
+            </section>
+
+            <!-- 2. Capa foreground reducida con guía visible de 66/108 dp -->
+            <section class="lab-card">
+              <div class="lab-card-head">
+                <span class="lab-card-title">Foreground reducido</span>
+                <span class="lab-card-sub">Zona segura 66 dp</span>
+              </div>
+              <div class="safezone-box">
+                <svg width="166" height="166" viewBox="0 0 108 108" aria-label="Emblema reducido con guía de zona segura 66/108 dp">
+                  <line x1="54" y1="2" x2="54" y2="106" stroke="#D8BCBA" stroke-width="0.45" stroke-opacity="0.24" />
+                  <line x1="2" y1="54" x2="106" y2="54" stroke="#D8BCBA" stroke-width="0.45" stroke-opacity="0.24" />
+                  <rect x="18" y="18" width="72" height="72" rx="16" fill="none" stroke="#8C7270" stroke-width="0.6" stroke-dasharray="2 3" stroke-opacity="0.55" />
+                  <rect x="21" y="21" width="66" height="66" fill="none" stroke="#F03A57" stroke-width="0.7" stroke-dasharray="2 2.5" stroke-opacity="0.45" />
+                  <circle cx="54" cy="54" r="33" fill="none" stroke="#F03A57" stroke-width="0.9" stroke-dasharray="3 2.5" stroke-opacity="0.82" />
+                  <use href="#sym-emblema-reducido" x="0" y="0" width="108" height="108" />
+                </svg>
+              </div>
+              <div class="safezone-legend">
+                <span>Lienzo 108 × 108 dp</span>
+                <span style="color:#F03A57">● Segura 66 dp</span>
+              </div>
+            </section>
+
+            <!-- 3. Variante monocroma (Android 13+ Material You) -->
+            <section class="lab-card">
+              <div class="lab-card-head">
+                <span class="lab-card-title">Monocromo (Android 13+)</span>
+                <span class="lab-card-sub">monochromeImage</span>
+              </div>
+              <div class="mono-row">
+                <div class="mono-tile">
+                  <svg width="64" height="64" viewBox="18 18 72 72" style="border-radius:50%;background:#120D0D;color:#FFFFFF;border:1px solid rgba(255,255,255,0.12)">
+                    <use href="#sym-emblema-monocromo" x="0" y="0" width="108" height="108" />
+                  </svg>
+                  <span class="mask-caption">Silueta plana</span>
+                </div>
+                <div class="mono-tile">
+                  <svg width="64" height="64" viewBox="18 18 72 72" style="clip-path:url(#c-mask-squircle);background:#382122;color:#F5D2D0">
+                    <use href="#sym-emblema-monocromo" x="0" y="0" width="108" height="108" />
+                  </svg>
+                  <span class="mask-caption">Material You</span>
+                </div>
+              </div>
+            </section>
+
+            <!-- 4. Sistema rápido de paleta y tipografía -->
+            <section class="lab-card">
+              <div class="lab-card-head">
+                <span class="lab-card-title">Sistema Neon v2</span>
+                <span class="lab-card-sub">Negro · Carmesí · Plata</span>
+              </div>
+              <div class="swatch-grid">
+                <div class="swatch-chip"><span class="swatch-dot" style="background:#070505"></span><span class="swatch-hex">#070505</span></div>
+                <div class="swatch-chip"><span class="swatch-dot" style="background:#210B0A"></span><span class="swatch-hex">#210B0A</span></div>
+                <div class="swatch-chip"><span class="swatch-dot" style="background:#151010"></span><span class="swatch-hex">#151010</span></div>
+                <div class="swatch-chip"><span class="swatch-dot" style="background:#BD1736"></span><span class="swatch-hex">#BD1736</span></div>
+                <div class="swatch-chip"><span class="swatch-dot" style="background:#D8BCBA"></span><span class="swatch-hex">#D8BCBA</span></div>
+                <div class="swatch-chip"><span class="swatch-dot" style="background:#F8F0EE"></span><span class="swatch-hex">#F8F0EE</span></div>
+              </div>
+              <div class="type-spec">
+                <span class="type-spec-serif">Cinzel · Títulos</span>
+                <span>Roboto · UI &amp; cifras</span>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Interactividad liviana en Pantalla 2 para probar selección en navegador (sin animaciones de fondo)
+    (function () {
+      const tiles = document.querySelectorAll('[data-selectable]');
+      const label = document.getElementById('delete-count-label');
+      const cancelBtn = document.getElementById('btn-cancel-sel');
+      if (!tiles.length || !label) return;
+
+      function syncCount() {
+        const count = document.querySelectorAll('[data-selectable].selected').length;
+        label.textContent = 'Borrar (' + count + ')';
+      }
+
+      tiles.forEach(function (tile) {
+        tile.addEventListener('click', function () {
+          tile.classList.toggle('selected');
+          syncCount();
+        });
+      });
+
+      if (cancelBtn) {
+        cancelBtn.addEventListener('click', function () {
+          tiles.forEach(function (t) { t.classList.remove('selected'); });
+          syncCount();
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
