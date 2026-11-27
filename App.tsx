@@ -27,6 +27,9 @@ interface Aviso {
   tipo: TipoAviso;
 }
 const avisoError = (texto: string): Aviso => ({ texto, tipo: 'error' });
+/** Una tanda que no agregó nada es un error (descartó todo); con tramos acortados, información. */
+const tipoDeResumen = (resultado: ResultadoTanda): TipoAviso =>
+  resultado.paquetes.length === 0 ? 'error' : resultado.acortados > 0 ? 'informativo' : 'normal';
 const SIN_SELECCION: ReadonlySet<string> = new Set();
 
 /** Un selector de tramo abierto: la tanda espera a que `responder` le diga la elección (o null si el usuario volvió). */
@@ -217,7 +220,7 @@ function Pantalla() {
     try {
       const resultado = await tanda();
       if (resultado) {
-        resumen = { texto: resultado.aviso, tipo: resultado.acortados > 0 ? 'informativo' : 'normal' };
+        resumen = { texto: resultado.aviso, tipo: tipoDeResumen(resultado) };
         setAviso(resumen);
         setPaquetes(biblioteca.paquetes());
         // WhatsApp no relee solo un paquete que ya tiene: le pedimos que lo
