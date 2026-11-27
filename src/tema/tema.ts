@@ -69,9 +69,9 @@ export const radios = {
   capsula: 999,
 } as const;
 
-/** Cinzel se embebe en #37; hasta entonces el serif cae a la del sistema. */
+/** Cinzel va embebida en el build (config plugin de expo-font en app.json); «Cinzel» es la familia que genera para Android. */
 export const tipografias = {
-  serif: 'serif',
+  serif: 'Cinzel',
   sans: undefined,
 } as const;
 
