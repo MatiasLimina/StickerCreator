@@ -53,6 +53,11 @@ export const colores = {
   avisoInfoAcento: '#E8C6C4',
   // Estado
   verdeEstado: '#2ED66B',
+  // Cielo y banner (#37)
+  plata: '#E2C4C1',
+  estrella: '#F5E9E7',
+  carmesiCielo: '#C81E2B',
+  bordeBanner: 'rgba(226, 200, 197, 0.16)',
   // Botón principal en curso (#22): fondo, borde, texto, pista y luz de la barra
   avanceFondo: '#271215',
   avanceBorde: '#6E222E',
@@ -69,9 +74,9 @@ export const radios = {
   capsula: 999,
 } as const;
 
-/** Cinzel se embebe en #37; hasta entonces el serif cae a la del sistema. */
+/** Cinzel va embebida en el build (config plugin de expo-font en app.json); «Cinzel» es la familia que genera para Android. */
 export const tipografias = {
-  serif: 'serif',
+  serif: 'Cinzel',
   sans: undefined,
 } as const;
 
