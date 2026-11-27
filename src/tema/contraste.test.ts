@@ -33,6 +33,12 @@ describe('paleta Evernight: los textos cumplen WCAG AA (4,5:1) sobre su fondo', 
     ['pastilla «2 de 3»', c.textoPrincipal, c.carmesiTinte],
     ['texto de «Crear» y «Siguiente»', c.carmesiTexto, c.carmesi],
     ['flechas de las manijas', c.carmesiTexto, c.carmesi],
+    // Tarjetas de paquete
+    ['estado listo sobre cabecera', c.textoSecundario, c.cabecera],
+    ['contador de la pastilla', c.textoSecundario, c.control],
+    ['«Agregar a WhatsApp» activo', c.textoPrincipal, c.control],
+    ['etiqueta «Animado»', c.textoPrincipal, c.cabecera],
+    ['✓ de la selección', c.carmesiTexto, c.carmesi],
   ];
   it.each(pares)('%s', (_nombre, texto, fondo) => {
     expect(contraste(texto, fondo)).toBeGreaterThanOrEqual(4.5);

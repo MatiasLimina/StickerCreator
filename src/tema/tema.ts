@@ -15,6 +15,7 @@ export const colores = {
   bordeControl: '#8C7270',
   bordeCancelar: '#5E4848',
   bordeAviso: '#4E3939',
+  bordePastilla: '#523D3D',
   // Textos
   textoPrincipal: '#F6ECEA',
   textoSecundario: '#D8BCBA',
@@ -33,6 +34,7 @@ export const colores = {
   // Baldosas de la grilla (#35)
   baldosa: '#F8F0EE',
   baldosaMarcada: '#EED9DA',
+  etiquetaFondo: 'rgba(21, 16, 16, 0.86)',
   // Controles inactivos (botón principal sin tanda, «Agregar a WhatsApp» sin stickers de sobra)
   inactivoFondo: '#1B1313',
   inactivoBorde: '#3D2E2E',
