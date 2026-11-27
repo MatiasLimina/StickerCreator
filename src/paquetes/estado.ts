@@ -1,7 +1,10 @@
 import type { VistaPaquete } from './biblioteca';
 
-/** `en-whatsapp` lleva el puntito verde; `listo` y `faltan` son los otros dos tonos de la tarjeta. */
-export type TonoEstado = 'en-whatsapp' | 'listo' | 'faltan';
+/**
+ * `en-whatsapp` lleva el puntito verde; `listo`, `pendiente` y `faltan` son
+ * los otros tonos de la tarjeta.
+ */
+export type TonoEstado = 'en-whatsapp' | 'listo' | 'pendiente' | 'faltan';
 
 export interface EstadoPaquete {
   texto: string;
@@ -12,11 +15,12 @@ export interface EstadoPaquete {
  * Qué le decimos al usuario de un paquete, según si WhatsApp ya lo tiene.
  * Pura y sin React Native: la pantalla solo la dibuja.
  */
-export function estadoDePaquete(paquete: Pick<VistaPaquete, 'faltan' | 'sePuedeAgregar'>, agregado: boolean): EstadoPaquete {
+export function estadoDePaquete(paquete: Pick<VistaPaquete, 'faltan' | 'sePuedeAgregar' | 'pendienteEnWhatsApp'>, agregado: boolean): EstadoPaquete {
   // WhatsApp conserva la última versión válida hasta que vuelva a haber 3.
   if (agregado && !paquete.sePuedeAgregar) {
     return { texto: `En WhatsApp sin cambios: faltan ${paquete.faltan} para actualizarlo`, tono: 'faltan' };
   }
+  if (agregado && paquete.pendienteEnWhatsApp) return { texto: 'Hay cambios sin pasar a WhatsApp', tono: 'pendiente' };
   if (agregado) return { texto: 'En WhatsApp', tono: 'en-whatsapp' };
   if (paquete.sePuedeAgregar) return { texto: 'Listo para agregar a WhatsApp', tono: 'listo' };
   return { texto: `Faltan ${paquete.faltan} para poder agregarlo`, tono: 'faltan' };

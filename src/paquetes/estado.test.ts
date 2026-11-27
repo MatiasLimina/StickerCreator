@@ -1,7 +1,11 @@
 import { estadoDePaquete } from './estado';
 
 // `faltan` y `sePuedeAgregar` son los que calcula la biblioteca: mínimo 3 stickers.
-const con = (cantidad: number) => ({ faltan: Math.max(0, 3 - cantidad), sePuedeAgregar: cantidad >= 3 });
+const con = (cantidad: number, pendienteEnWhatsApp = false) => ({
+  faltan: Math.max(0, 3 - cantidad),
+  sePuedeAgregar: cantidad >= 3,
+  pendienteEnWhatsApp,
+});
 
 describe('estadoDePaquete', () => {
   it('un paquete que WhatsApp ya tiene y sigue válido dice «En WhatsApp» con tono en-whatsapp', () => {
@@ -29,5 +33,13 @@ describe('estadoDePaquete', () => {
 
   it('un agregado con exactamente 3 stickers vuelve a «En WhatsApp»', () => {
     expect(estadoDePaquete(con(3), true)).toEqual({ texto: 'En WhatsApp', tono: 'en-whatsapp' });
+  });
+
+  it('un agregado con cambios que WhatsApp no confirmó lo dice, sin puntito verde', () => {
+    expect(estadoDePaquete(con(5, true), true)).toEqual({ texto: 'Hay cambios sin pasar a WhatsApp', tono: 'pendiente' });
+  });
+
+  it('sin agregar, lo pendiente no cuenta: está listo para agregar', () => {
+    expect(estadoDePaquete(con(5, true), false)).toEqual({ texto: 'Listo para agregar a WhatsApp', tono: 'listo' });
   });
 });

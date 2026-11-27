@@ -27,6 +27,11 @@ export interface VistaPaquete {
   icono: string | null;
   /** Versión de datos: sube con cada cambio de contenido para que WhatsApp relea el paquete. */
   version: number;
+  /**
+   * Hay contenido publicado que WhatsApp todavía no confirmó: hace falta
+   * pedirle que actualice el paquete. Solo importa si WhatsApp ya lo tiene.
+   */
+  pendienteEnWhatsApp: boolean;
 }
 
 // Forma de `paquetes.json`. Es un contrato con el proveedor de contenido nativo
@@ -46,6 +51,12 @@ interface PaqueteGuardado {
    * versión válida.
    */
   publicado: Publicado | null;
+  /**
+   * La versión de `publicado` que WhatsApp confirmó la última vez que se le
+   * pidió agregar o actualizar el paquete. Solo la usa TS: el proveedor nativo
+   * no la lee. Falta en los índices viejos, y ahí cuenta como nunca confirmada.
+   */
+  confirmada?: number;
 }
 
 interface Publicado {
@@ -74,6 +85,11 @@ export interface Biblioteca {
    * y devuelve los paquetes que cambiaron. Un sticker que ya no está se ignora.
    */
   borrarStickers(archivos: string[]): Promise<VistaPaquete[]>;
+  /**
+   * Registra que WhatsApp aceptó el paquete en esa versión (la de la vista
+   * con la que se le pidió). Si después llegaron cambios, siguen pendientes.
+   */
+  confirmarEnWhatsApp(id: string, version: number): Promise<void>;
 }
 
 function indiceInicial(): Indice {
@@ -104,6 +120,7 @@ function vista(paquete: PaqueteGuardado): VistaPaquete {
     sePuedeAgregar: cantidad >= MINIMO_PARA_AGREGAR,
     icono: paquete.stickers[0] ?? null,
     version: paquete.version,
+    pendienteEnWhatsApp: paquete.publicado !== null && paquete.publicado.version !== paquete.confirmada,
   };
 }
 
@@ -208,6 +225,12 @@ export async function abrirBiblioteca(
       }
       await guardar(enUso);
       return tocados.map(vista);
+    },
+    async confirmarEnWhatsApp(id, version) {
+      const paquete = indice.paquetes.find((p) => vista(p).id === id);
+      if (!paquete || paquete.confirmada === version) return;
+      paquete.confirmada = version;
+      await almacen.escribir(JSON.stringify(indice));
     },
   };
 }

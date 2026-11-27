@@ -121,7 +121,15 @@ function Pantalla() {
   async function pedirAWhatsApp(paquete: VistaPaquete, yaAgregado: boolean) {
     try {
       const resultado = await agregarAWhatsApp(paquete, yaAgregado);
-      if (resultado.agregado) setAgregados((antes) => ({ ...antes, [paquete.id]: true }));
+      if (resultado.agregado) {
+        setAgregados((antes) => ({ ...antes, [paquete.id]: true }));
+        // Por la cola: escribe el índice, como las tandas y los borrados.
+        encolarCambio(async () => {
+          if (!biblioteca) return;
+          await biblioteca.confirmarEnWhatsApp(paquete.id, paquete.version);
+          setPaquetes(biblioteca.paquetes());
+        });
+      }
       return resultado;
     } catch (e) {
       return { agregado: false, aviso: `No se pudo abrir WhatsApp: ${mensajeDe(e)}`, tipoAviso: 'error' } satisfies ResultadoPedido;
@@ -130,7 +138,7 @@ function Pantalla() {
 
   async function agregar(paquete: VistaPaquete) {
     setAviso(null);
-    const { aviso: texto, tipoAviso } = await pedirAWhatsApp(paquete, false);
+    const { aviso: texto, tipoAviso } = await pedirAWhatsApp(paquete, agregados[paquete.id] ?? false);
     setAviso(texto ? { texto, tipo: tipoAviso } : null);
   }
 
