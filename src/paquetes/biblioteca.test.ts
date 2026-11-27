@@ -245,6 +245,7 @@ describe('borrar stickers', () => {
 
     const paquete = (await biblioteca.borrarStickers(['b.webp']))[0];
 
+    expect(paquete.id).toBe('estatico-1');
     expect(paquete.stickers).toEqual(['a.webp', 'c.webp', 'd.webp']);
     expect(paquete.cantidad).toBe(3);
     expect(paquete.version).toBeGreaterThan(antes.version);
@@ -406,6 +407,25 @@ describe('cambios sin pasar a WhatsApp', () => {
     await biblioteca.confirmarEnWhatsApp(paquete.id, paquete.version);
 
     await biblioteca.borrarStickers(['c.webp']);
+
+    expect(estatico(biblioteca).pendienteEnWhatsApp).toBe(false);
+  });
+
+  it('un índice de antes de este dato muestra pendiente lo publicado hasta la primera confirmación', async () => {
+    const almacen = crearAlmacenEnMemoria();
+    const publicado = { version: 3, nombre: 'Mis stickers', autor: 'StickerCreator', stickers: ['a.webp', 'b.webp', 'c.webp'] };
+    await almacen.escribir(
+      JSON.stringify({
+        paquetes: [
+          { tipo: 'estatico', numero: 1, stickers: ['a.webp', 'b.webp', 'c.webp'], version: 3, publicado },
+          { tipo: 'animado', numero: 1, stickers: [], version: 0, publicado: null },
+        ],
+      }),
+    );
+    const biblioteca = await abrirBiblioteca(almacen);
+    expect(estatico(biblioteca).pendienteEnWhatsApp).toBe(true);
+
+    await biblioteca.confirmarEnWhatsApp('estatico-1', 3);
 
     expect(estatico(biblioteca).pendienteEnWhatsApp).toBe(false);
   });

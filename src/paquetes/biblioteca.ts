@@ -106,10 +106,15 @@ function nombreDe({ tipo, numero }: PaqueteGuardado): string {
   return numero === 1 ? NOMBRE_BASE[tipo] : `${NOMBRE_BASE[tipo]} ${numero}`;
 }
 
+/** El id que ve WhatsApp: no puede cambiar una vez agregado. */
+function idDe({ tipo, numero }: PaqueteGuardado): string {
+  return `${tipo}-${numero}`;
+}
+
 function vista(paquete: PaqueteGuardado): VistaPaquete {
   const cantidad = paquete.stickers.length;
   return {
-    id: `${paquete.tipo}-${paquete.numero}`,
+    id: idDe(paquete),
     nombre: nombreDe(paquete),
     autor: AUTOR,
     tipo: paquete.tipo,
@@ -227,7 +232,7 @@ export async function abrirBiblioteca(
       return tocados.map(vista);
     },
     async confirmarEnWhatsApp(id, version) {
-      const paquete = indice.paquetes.find((p) => vista(p).id === id);
+      const paquete = indice.paquetes.find((p) => idDe(p) === id);
       if (!paquete || paquete.confirmada === version) return;
       paquete.confirmada = version;
       await almacen.escribir(JSON.stringify(indice));
