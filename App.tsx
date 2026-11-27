@@ -4,6 +4,7 @@ import { Alert, AppState, BackHandler, Pressable, StyleSheet, Text, ToastAndroid
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { abrirBiblioteca, type Biblioteca, type VistaPaquete } from './src/paquetes/biblioteca';
 import { crearAlmacenEnArchivo } from './src/paquetes/almacen-en-archivo';
+import { Cielo } from './src/identidad/Cielo';
 import { PantallaPaquetes } from './src/pantalla/PantallaPaquetes';
 import { SelectorDeTramo } from './src/pantalla/SelectorDeTramo';
 import { archivoDeSticker, eliminarArchivoDeSticker } from './src/stickers/carpeta';
@@ -282,6 +283,8 @@ function Pantalla() {
     // Android dibuja de borde a borde: dejamos lugar para la barra de estado
     // arriba y la de navegación abajo.
     <SafeAreaView style={styles.container}>
+      {/* Capa fija detrás de todo: no se mueve con el scroll de la lista. */}
+      <Cielo />
       {error && <Text style={styles.error}>{error}</Text>}
       {paquetes && (
         <PantallaPaquetes

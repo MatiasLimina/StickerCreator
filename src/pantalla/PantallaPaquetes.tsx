@@ -2,7 +2,9 @@ import { memo } from 'react';
 import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { VistaPaquete } from '../paquetes/biblioteca';
 import { estadoDePaquete } from '../paquetes/estado';
-import { AREA_TOCABLE, colores, radios } from '../tema/tema';
+import { resumenDeBiblioteca } from '../paquetes/resumen';
+import { AREA_TOCABLE, colores, radios, tipografias } from '../tema/tema';
+import { Banner } from './Banner';
 
 interface Props {
   paquetes: VistaPaquete[];
@@ -66,6 +68,7 @@ export function PantallaPaquetes({ paquetes, agregados, uriDeSticker, onAgregar,
       data={paquetes}
       keyExtractor={(p) => p.id}
       contentContainerStyle={styles.lista}
+      ListHeaderComponent={<Banner resumen={resumenDeBiblioteca(paquetes)} />}
       renderItem={({ item }) => {
         const agregado = agregados[item.id] ?? false;
         const estado = estadoDePaquete(item, agregado);
@@ -144,7 +147,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colores.borde,
   },
   filaNombre: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-  nombre: { flexShrink: 1, fontSize: 16, fontWeight: '600', letterSpacing: 0.3, color: colores.textoPrincipal },
+  nombre: { flexShrink: 1, fontFamily: tipografias.serif, fontSize: 16, fontWeight: '600', letterSpacing: 0.3, color: colores.textoPrincipal },
   pastilla: {
     paddingVertical: 2.5,
     paddingHorizontal: 9,
