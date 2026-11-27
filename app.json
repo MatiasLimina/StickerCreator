@@ -56,7 +56,9 @@
     },
     "owner": "matileywin",
     "plugins": [
-      "expo-video"
-    ]
+      "expo-video",
+      "expo-system-ui"
+    ],
+    "backgroundColor": "#070505"
   }
 }
