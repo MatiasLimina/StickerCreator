@@ -50,7 +50,11 @@ const Celda = memo(function Celda({
             <Text style={styles.textoEtiqueta}>Animado</Text>
           </View>
         )}
-        {marcado && <Text style={styles.tilde}>✓</Text>}
+        {marcado && (
+          <View style={styles.tilde}>
+            <Text style={styles.textoTilde}>✓</Text>
+          </View>
+        )}
       </Pressable>
     </View>
   );
@@ -80,7 +84,7 @@ export function PantallaPaquetes({ paquetes, agregados, uriDeSticker, onAgregar,
               </View>
               <View style={styles.filaEstado}>
                 {estado.tono === 'en-whatsapp' && <View style={styles.puntito} />}
-                <Text style={[styles.estado, estado.tono === 'listo' && styles.estadoListo]}>{estado.texto}</Text>
+                <Text style={[styles.estado, estado.tono === 'faltan' && styles.estadoFaltan]}>{estado.texto}</Text>
               </View>
             </View>
             <View style={styles.cuerpo}>
@@ -128,35 +132,37 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colores.borde,
     overflow: 'hidden',
+    boxShadow: '0 10px 24px rgba(0, 0, 0, 0.56)',
   },
   encabezado: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 8,
     gap: 4,
     backgroundColor: colores.cabecera,
     borderBottomWidth: 1,
     borderBottomColor: colores.borde,
   },
-  filaNombre: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  nombre: { flexShrink: 1, fontSize: 18, fontWeight: '600', color: colores.textoPrincipal },
+  filaNombre: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  nombre: { flexShrink: 1, fontSize: 16, fontWeight: '600', letterSpacing: 0.3, color: colores.textoPrincipal },
   pastilla: {
-    minHeight: 28,
-    paddingHorizontal: 12,
+    paddingVertical: 2.5,
+    paddingHorizontal: 9,
     justifyContent: 'center',
     borderRadius: radios.capsula,
     backgroundColor: colores.control,
     borderWidth: 1,
-    borderColor: colores.borde,
+    borderColor: colores.bordePastilla,
   },
-  contador: { fontSize: 14, fontWeight: '600', color: colores.textoSecundario, fontVariant: ['tabular-nums'] },
-  filaEstado: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  puntito: { width: 8, height: 8, borderRadius: 4, backgroundColor: colores.verdeEstado },
-  estado: { fontSize: 14, color: colores.textoAtenuado },
-  estadoListo: { color: colores.textoSecundario },
-  cuerpo: { padding: 12, gap: 12 },
+  contador: { fontSize: 12, fontWeight: '600', color: colores.textoSecundario, fontVariant: ['tabular-nums'] },
+  filaEstado: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  puntito: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: colores.verdeEstado },
+  estado: { fontSize: 12.5, color: colores.textoSecundario },
+  estadoFaltan: { color: colores.textoAtenuado },
+  cuerpo: { paddingHorizontal: 14, paddingTop: 10, paddingBottom: 12, gap: 10 },
   grilla: { flexDirection: 'row', flexWrap: 'wrap' },
   // Cuatro columnas: cada hueco ocupa un cuarto y la baldosa respeta una separación pareja.
-  hueco: { width: '25%', padding: 4 },
+  hueco: { width: '25%', padding: 4.5 },
   celda: {
     aspectRatio: 1,
     minHeight: AREA_TOCABLE,
@@ -166,33 +172,41 @@ const styles = StyleSheet.create({
     backgroundColor: colores.baldosa,
     alignItems: 'center',
     justifyContent: 'center',
+    boxShadow: '0 4px 10px rgba(0, 0, 0, 0.42)',
   },
-  celdaMarcada: { borderColor: colores.carmesiVivo, backgroundColor: colores.baldosaMarcada },
+  celdaMarcada: {
+    borderColor: colores.carmesiVivo,
+    backgroundColor: colores.baldosaMarcada,
+    boxShadow: '0 0 0 2px rgba(240, 58, 87, 0.25), 0 4px 10px rgba(0, 0, 0, 0.42)',
+  },
   sticker: { width: '84%', height: '84%' },
-  stickerMarcado: { opacity: 0.6 },
+  stickerMarcado: { opacity: 0.56 },
   etiqueta: {
     position: 'absolute',
     bottom: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: radios.capsula,
-    backgroundColor: colores.cabecera,
+    right: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
+    borderRadius: 5,
+    backgroundColor: colores.etiquetaFondo,
   },
-  textoEtiqueta: { fontSize: 10, fontWeight: '600', color: colores.textoPrincipal },
+  // El diseño usa 8 px; 9 para que se lea en el teléfono.
+  textoEtiqueta: { fontSize: 9, letterSpacing: 0.2, fontWeight: '600', color: colores.textoPrincipal },
   tilde: {
     position: 'absolute',
     top: -6,
     right: -6,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    overflow: 'hidden',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colores.tarjeta,
     backgroundColor: colores.carmesi,
-    color: colores.carmesiTexto,
-    textAlign: 'center',
-    lineHeight: 22,
-    fontWeight: '700',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.5)',
   },
+  textoTilde: { color: colores.carmesiTexto, fontSize: 13, fontWeight: '700', includeFontPadding: false },
   boton: {
     minHeight: AREA_TOCABLE,
     paddingHorizontal: 16,
