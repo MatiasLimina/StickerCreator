@@ -16,10 +16,13 @@ import {
   type PedidoDeTramo,
   type ResultadoTanda,
 } from './src/stickers/tanda';
+import { colores, estilosPie, radios, AREA_TOCABLE } from './src/tema/tema';
 import { agregarAWhatsApp, consultarAgregados, estaAgregado } from './src/whatsapp/agregar';
 
 const mensajeDe = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const uriDeSticker = (nombre: string) => archivoDeSticker(nombre).uri;
+// Los avisos de error empiezan por «No se pudo/pudieron…»; el resto es normal.
+const ERROR_DE_AVISO = /^No se pud/;
 const SIN_SELECCION: ReadonlySet<string> = new Set();
 
 /** Un selector de tramo abierto: la tanda espera a que `responder` le diga la elección (o null si el usuario volvió). */
@@ -267,6 +270,8 @@ function Pantalla() {
     if (biblioteca) encolar(() => crearStickerDesdeGaleria(biblioteca, elegirTramo));
   }
 
+  const tipoDeAviso = aviso === null ? null : aviso === avisoInformativo ? 'informativo' : ERROR_DE_AVISO.test(aviso) ? 'error' : 'normal';
+
   return (
     // Android dibuja de borde a borde: dejamos lugar para la barra de estado
     // arriba y la de navegación abajo.
@@ -284,27 +289,30 @@ function Pantalla() {
         />
       )}
       {aviso && (
-        <Text style={styles.aviso}>
-          {aviso === avisoInformativo && <Text style={styles.iconoInformacion}>ⓘ </Text>}
-          {aviso}
-        </Text>
+        <View style={[styles.aviso, tipoDeAviso === 'informativo' && styles.avisoInformativo, tipoDeAviso === 'error' && styles.avisoError]}>
+          {tipoDeAviso === 'informativo' && <Text style={styles.iconoInformacion}>ⓘ</Text>}
+          {tipoDeAviso === 'error' && <Text style={styles.iconoError}>⚠</Text>}
+          <Text style={[styles.textoAviso, tipoDeAviso === 'error' && styles.textoAvisoError]}>{aviso}</Text>
+        </View>
       )}
       {seleccionando ? (
         <View style={styles.barraSeleccion}>
-          <Pressable style={[styles.boton, styles.botonCancelar]} onPress={() => setSeleccion(SIN_SELECCION)}>
+          <Pressable style={[styles.botonSeleccion, styles.botonCancelar]} onPress={() => setSeleccion(SIN_SELECCION)}>
             <Text style={styles.textoCancelar}>Cancelar</Text>
           </Pressable>
-          <Pressable style={[styles.boton, styles.botonBorrar]} onPress={confirmarBorrado}>
-            <Text style={styles.textoBoton}>Borrar ({seleccion.size})</Text>
+          <Pressable style={[styles.botonSeleccion, styles.botonBorrar]} onPress={confirmarBorrado}>
+            <Text style={styles.textoBorrar}>🗑 Borrar ({seleccion.size})</Text>
           </Pressable>
         </View>
       ) : (
         <Pressable
-          style={[styles.boton, (!biblioteca || convirtiendo) && styles.botonInactivo]}
+          style={[styles.principal, (!biblioteca || convirtiendo) && styles.principalInactivo]}
           disabled={!biblioteca || convirtiendo}
           onPress={elegirDeGaleria}
         >
-          <Text style={styles.textoBoton}>{convirtiendo ? 'Convirtiendo…' : 'Elegir de la galería'}</Text>
+          <Text style={[styles.textoPrincipal, (!biblioteca || convirtiendo) && styles.textoPrincipalInactivo]}>
+            {convirtiendo ? 'Convirtiendo…' : 'Elegir de la galería'}
+          </Text>
         </Pressable>
       )}
       {selectorAbierto && (
@@ -320,21 +328,57 @@ function Pantalla() {
           onVolver={() => selectorAbierto.responder(null)}
         />
       )}
-      <StatusBar style="auto" />
+      <StatusBar style="light" />
     </SafeAreaView>
   );
 }
 
+const margenPie = { marginHorizontal: 16, marginBottom: 16 } as const;
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  error: { padding: 16, color: '#B42318' },
-  aviso: { paddingHorizontal: 16, paddingBottom: 8, color: '#344054' },
-  iconoInformacion: { color: '#1570EF', fontWeight: '700' },
-  boton: { margin: 16, padding: 16, borderRadius: 12, backgroundColor: '#1570EF', alignItems: 'center' },
-  botonInactivo: { opacity: 0.5 },
-  textoBoton: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  barraSeleccion: { flexDirection: 'row' },
-  botonCancelar: { flex: 1, marginRight: 8, backgroundColor: '#F2F4F7' },
-  botonBorrar: { flex: 1, marginLeft: 8, backgroundColor: '#D92D20' },
-  textoCancelar: { color: '#344054', fontSize: 16, fontWeight: '600' },
+  container: { flex: 1, backgroundColor: colores.lienzo },
+  error: { padding: 16, color: colores.errorTexto },
+  aviso: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    marginHorizontal: 16,
+    marginBottom: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: radios.aviso,
+    backgroundColor: colores.control,
+    borderWidth: 1,
+    borderColor: colores.bordeAviso,
+    borderLeftWidth: 3.5,
+    borderLeftColor: colores.bordeControl,
+  },
+  avisoInformativo: { backgroundColor: colores.avisoInfoFondo, borderLeftColor: colores.avisoInfoAcento },
+  avisoError: { backgroundColor: colores.errorFondo, borderColor: colores.errorBorde, borderLeftColor: colores.errorAcento },
+  textoAviso: { flex: 1, fontSize: 13, lineHeight: 18, fontWeight: '500', color: colores.textoPrincipal },
+  textoAvisoError: { color: colores.errorTexto },
+  iconoInformacion: { fontSize: 15, fontWeight: '700', color: colores.avisoInfoAcento },
+  iconoError: { fontSize: 15, fontWeight: '700', color: colores.errorAcento },
+  principal: {
+    ...estilosPie.principal,
+    ...margenPie,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowOpacity: 0.9,
+    shadowRadius: 13,
+  },
+  principalInactivo: {
+    backgroundColor: colores.principalInactivoFondo,
+    borderColor: colores.avanceBorde,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  textoPrincipal: { color: colores.carmesiTexto, fontSize: 15.5, fontWeight: '600', letterSpacing: 0.15 },
+  textoPrincipalInactivo: { color: colores.principalInactivoTexto },
+  barraSeleccion: { flexDirection: 'row', gap: 10, ...margenPie },
+  botonSeleccion: { minHeight: Math.max(50, AREA_TOCABLE), borderRadius: radios.boton, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  botonCancelar: { flex: 1, backgroundColor: colores.control, borderColor: colores.bordeCancelar },
+  botonBorrar: { flex: 1.2, backgroundColor: colores.destructivoFondo, borderColor: colores.destructivoBorde },
+  textoCancelar: { color: colores.textoPrincipal, fontSize: 15, fontWeight: '600' },
+  textoBorrar: { color: colores.destructivoTexto, fontSize: 15, fontWeight: '600', fontVariant: ['tabular-nums'] },
 });
