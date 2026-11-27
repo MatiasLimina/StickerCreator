@@ -8,7 +8,7 @@
     "userInterfaceStyle": "dark",
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#070505",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -57,7 +57,15 @@
     "owner": "matileywin",
     "plugins": [
       "expo-video",
-      "expo-system-ui"
+      "expo-system-ui",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "backgroundColor": "#070505",
+          "imageWidth": 180
+        }
+      ]
     ],
     "backgroundColor": "#070505"
   }
