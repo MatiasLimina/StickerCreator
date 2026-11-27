@@ -1,6 +1,15 @@
 import WhatsApp from '../../modules/whatsapp';
 import type { VistaPaquete } from '../paquetes/biblioteca';
 
+/** Cómo se muestra un aviso: normal, informativo (ajuste, no fallo) o de error. */
+export type TipoAviso = 'normal' | 'informativo' | 'error';
+
+export interface ResultadoPedido {
+  agregado: boolean;
+  aviso: string | null;
+  tipoAviso: TipoAviso;
+}
+
 export const AVISO_SIN_WHATSAPP =
   'WhatsApp no está instalado: instalalo para agregar tus paquetes de stickers.';
 
@@ -12,23 +21,25 @@ export const AVISO_SIN_WHATSAPP =
 export async function agregarAWhatsApp(
   paquete: VistaPaquete,
   yaAgregado = false,
-): Promise<{ agregado: boolean; aviso: string | null }> {
+): Promise<ResultadoPedido> {
   const resultado = await WhatsApp.agregar(paquete.id, paquete.nombre);
   switch (resultado.tipo) {
     case 'agregado':
       return {
         agregado: true,
         aviso: `${paquete.nombre} se ${yaAgregado ? 'actualizó en' : 'agregó a'} WhatsApp`,
+        tipoAviso: 'normal',
       };
     case 'cancelado':
       return {
         agregado: false,
         aviso: yaAgregado ? `WhatsApp no se actualizó: los cambios aparecen cuando actualices ${paquete.nombre}` : null,
+        tipoAviso: 'normal',
       };
     case 'no-instalado':
-      return { agregado: false, aviso: AVISO_SIN_WHATSAPP };
+      return { agregado: false, aviso: AVISO_SIN_WHATSAPP, tipoAviso: 'error' };
     case 'error':
-      return { agregado: false, aviso: `WhatsApp no aceptó el paquete: ${resultado.motivo}` };
+      return { agregado: false, aviso: `WhatsApp no aceptó el paquete: ${resultado.motivo}`, tipoAviso: 'error' };
   }
 }
 

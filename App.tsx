@@ -16,13 +16,17 @@ import {
   type PedidoDeTramo,
   type ResultadoTanda,
 } from './src/stickers/tanda';
-import { colores, estilosPie, radios, AREA_TOCABLE } from './src/tema/tema';
-import { agregarAWhatsApp, consultarAgregados, estaAgregado } from './src/whatsapp/agregar';
+import { colores, estilosPie, radios, ALTO_BOTON_SELECCION } from './src/tema/tema';
+import { agregarAWhatsApp, consultarAgregados, estaAgregado, type ResultadoPedido, type TipoAviso } from './src/whatsapp/agregar';
 
 const mensajeDe = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const uriDeSticker = (nombre: string) => archivoDeSticker(nombre).uri;
-// Los avisos de error empiezan por «No se pudo/pudieron…»; el resto es normal.
-const ERROR_DE_AVISO = /^No se pud/;
+/** Un aviso de una línea: lleva su tipo desde donde se crea. */
+interface Aviso {
+  texto: string;
+  tipo: TipoAviso;
+}
+const avisoError = (texto: string): Aviso => ({ texto, tipo: 'error' });
 const SIN_SELECCION: ReadonlySet<string> = new Set();
 
 /** Un selector de tramo abierto: la tanda espera a que `responder` le diga la elección (o null si el usuario volvió). */
@@ -49,11 +53,7 @@ function Pantalla() {
   const [biblioteca, setBiblioteca] = useState<Biblioteca | null>(null);
   const [paquetes, setPaquetes] = useState<VistaPaquete[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [aviso, setAviso] = useState<string | null>(null);
-  // El aviso de una tanda con tramos acortados lleva el ícono de información
-  // (acortar es un ajuste, no un error). Se guarda el texto: si otro aviso lo
-  // reemplaza, el ícono se va solo.
-  const [avisoInformativo, setAvisoInformativo] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<Aviso | null>(null);
   const [convirtiendo, setConvirtiendo] = useState(false);
   const [agregados, setAgregados] = useState<Record<string, boolean>>({});
   // Stickers marcados para borrar, como en una galería: con alguno marcado, la pantalla está en modo selección.
@@ -121,13 +121,14 @@ function Pantalla() {
       if (resultado.agregado) setAgregados((antes) => ({ ...antes, [paquete.id]: true }));
       return resultado;
     } catch (e) {
-      return { agregado: false, aviso: `No se pudo abrir WhatsApp: ${mensajeDe(e)}` };
+      return { agregado: false, aviso: `No se pudo abrir WhatsApp: ${mensajeDe(e)}`, tipoAviso: 'error' } satisfies ResultadoPedido;
     }
   }
 
   async function agregar(paquete: VistaPaquete) {
     setAviso(null);
-    setAviso((await pedirAWhatsApp(paquete, false)).aviso);
+    const { aviso: texto, tipoAviso } = await pedirAWhatsApp(paquete, false);
+    setAviso(texto ? { texto, tipo: tipoAviso } : null);
   }
 
   // Todo lo que cambia la biblioteca (tandas de la galería o de Compartir y
@@ -146,10 +147,10 @@ function Pantalla() {
    * menos de 3 no hay contenido nuevo publicado: no se pide nada. Devuelve el
    * aviso si la actualización no se hizo.
    */
-  async function actualizarEnWhatsApp(paquete: VistaPaquete): Promise<string | null> {
+  async function actualizarEnWhatsApp(paquete: VistaPaquete): Promise<Aviso | null> {
     if (!paquete.sePuedeAgregar || !(await estaAgregado(paquete))) return null;
     const actualizacion = await pedirAWhatsApp(paquete, true);
-    return actualizacion.agregado ? null : actualizacion.aviso;
+    return actualizacion.agregado || !actualizacion.aviso ? null : { texto: actualizacion.aviso, tipo: actualizacion.tipoAviso };
   }
 
   // Estables (no dependen de la selección actual) para que la grilla redibuje
@@ -191,7 +192,10 @@ function Pantalla() {
         const tocados = await biblioteca.borrarStickers(archivos);
         if (tocados.length === 0) return;
         setPaquetes(biblioteca.paquetes());
-        let resumen = archivos.length === 1 ? 'Sticker borrado' : `${archivos.length} stickers borrados`;
+        let resumen: Aviso = {
+          texto: archivos.length === 1 ? 'Sticker borrado' : `${archivos.length} stickers borrados`,
+          tipo: 'normal',
+        };
         setAviso(resumen);
         // Una actualización por paquete tocado, como al final de una tanda.
         for (const paquete of tocados) {
@@ -200,7 +204,7 @@ function Pantalla() {
         }
         setAviso(resumen);
       } catch (e) {
-        setAviso(`No se pudieron borrar los stickers: ${mensajeDe(e)}`);
+        setAviso(avisoError(`No se pudieron borrar los stickers: ${mensajeDe(e)}`));
       }
     });
   }
@@ -209,12 +213,11 @@ function Pantalla() {
     if (!biblioteca) return;
     setConvirtiendo(true);
     setAviso(null);
-    let resumen: string | null = null;
+    let resumen: Aviso | null = null;
     try {
       const resultado = await tanda();
       if (resultado) {
-        resumen = resultado.aviso;
-        setAvisoInformativo(resultado.acortados > 0 ? resumen : null);
+        resumen = { texto: resultado.aviso, tipo: resultado.acortados > 0 ? 'informativo' : 'normal' };
         setAviso(resumen);
         setPaquetes(biblioteca.paquetes());
         // WhatsApp no relee solo un paquete que ya tiene: le pedimos que lo
@@ -229,7 +232,7 @@ function Pantalla() {
         setAviso(resumen);
       }
     } catch (e) {
-      resumen = `No se pudo crear el sticker: ${mensajeDe(e)}`;
+      resumen = avisoError(`No se pudo crear el sticker: ${mensajeDe(e)}`);
       setAviso(resumen);
     } finally {
       setConvirtiendo(false);
@@ -237,7 +240,7 @@ function Pantalla() {
     // Desde Compartir, el aviso tiene que verse sobre la app de origen, a la
     // que volvemos apenas termina la tanda.
     if (desdeCompartir) {
-      if (resumen) ToastAndroid.show(resumen, ToastAndroid.LONG);
+      if (resumen) ToastAndroid.show(resumen.texto, ToastAndroid.LONG);
       await Compartir.volverAlOrigen().catch(() => {}); // si falla, la app queda abierta con el aviso
     }
   }
@@ -252,7 +255,7 @@ function Pantalla() {
         .then((archivos) => {
           if (archivos.length > 0) encolar(() => convertirTanda(biblioteca, archivos, elegirTramo), true);
         })
-        .catch((e: unknown) => setAviso(`No se pudo leer lo compartido: ${mensajeDe(e)}`));
+        .catch((e: unknown) => setAviso(avisoError(`No se pudo leer lo compartido: ${mensajeDe(e)}`)));
     };
     recibir();
     const compartido = Compartir.addListener('compartido', recibir);
@@ -270,7 +273,7 @@ function Pantalla() {
     if (biblioteca) encolar(() => crearStickerDesdeGaleria(biblioteca, elegirTramo));
   }
 
-  const tipoDeAviso = aviso === null ? null : aviso === avisoInformativo ? 'informativo' : ERROR_DE_AVISO.test(aviso) ? 'error' : 'normal';
+  const inactivo = !biblioteca || convirtiendo;
 
   return (
     // Android dibuja de borde a borde: dejamos lugar para la barra de estado
@@ -289,10 +292,10 @@ function Pantalla() {
         />
       )}
       {aviso && (
-        <View style={[styles.aviso, tipoDeAviso === 'informativo' && styles.avisoInformativo, tipoDeAviso === 'error' && styles.avisoError]}>
-          {tipoDeAviso === 'informativo' && <Text style={styles.iconoInformacion}>ⓘ</Text>}
-          {tipoDeAviso === 'error' && <Text style={styles.iconoError}>⚠</Text>}
-          <Text style={[styles.textoAviso, tipoDeAviso === 'error' && styles.textoAvisoError]}>{aviso}</Text>
+        <View style={[styles.aviso, aviso.tipo === 'informativo' && styles.avisoInformativo, aviso.tipo === 'error' && styles.avisoError]}>
+          {aviso.tipo === 'informativo' && <Text style={styles.iconoInformacion}>ⓘ</Text>}
+          {aviso.tipo === 'error' && <Text style={styles.iconoError}>⚠</Text>}
+          <Text style={[styles.textoAviso, aviso.tipo === 'error' && styles.textoAvisoError]}>{aviso.texto}</Text>
         </View>
       )}
       {seleccionando ? (
@@ -306,11 +309,11 @@ function Pantalla() {
         </View>
       ) : (
         <Pressable
-          style={[styles.principal, (!biblioteca || convirtiendo) && styles.principalInactivo]}
-          disabled={!biblioteca || convirtiendo}
+          style={[styles.principal, inactivo && styles.principalInactivo]}
+          disabled={inactivo}
           onPress={elegirDeGaleria}
         >
-          <Text style={[styles.textoPrincipal, (!biblioteca || convirtiendo) && styles.textoPrincipalInactivo]}>
+          <Text style={[styles.textoPrincipal, inactivo && styles.textoPrincipalInactivo]}>
             {convirtiendo ? 'Convirtiendo…' : 'Elegir de la galería'}
           </Text>
         </Pressable>
@@ -364,19 +367,17 @@ const styles = StyleSheet.create({
     ...margenPie,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowOpacity: 0.9,
-    shadowRadius: 13,
+    boxShadow: [{ offsetX: 0, offsetY: 10, blurRadius: 26, color: colores.resplandor }],
   },
   principalInactivo: {
-    backgroundColor: colores.principalInactivoFondo,
-    borderColor: colores.avanceBorde,
-    shadowOpacity: 0,
-    elevation: 0,
+    backgroundColor: colores.inactivoFondo,
+    borderColor: colores.inactivoBorde,
+    boxShadow: [],
   },
   textoPrincipal: { color: colores.carmesiTexto, fontSize: 15.5, fontWeight: '600', letterSpacing: 0.15 },
-  textoPrincipalInactivo: { color: colores.principalInactivoTexto },
+  textoPrincipalInactivo: { color: colores.inactivoTexto },
   barraSeleccion: { flexDirection: 'row', gap: 10, ...margenPie },
-  botonSeleccion: { minHeight: Math.max(50, AREA_TOCABLE), borderRadius: radios.boton, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  botonSeleccion: { minHeight: ALTO_BOTON_SELECCION, borderRadius: radios.boton, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   botonCancelar: { flex: 1, backgroundColor: colores.control, borderColor: colores.bordeCancelar },
   botonBorrar: { flex: 1.2, backgroundColor: colores.destructivoFondo, borderColor: colores.destructivoBorde },
   textoCancelar: { color: colores.textoPrincipal, fontSize: 15, fontWeight: '600' },
