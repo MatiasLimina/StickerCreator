@@ -30,7 +30,7 @@ export const colores = {
   // Baldosas de la grilla (#35)
   baldosa: '#F8F0EE',
   baldosaMarcada: '#EED9DA',
-  // Botón «Agregar a WhatsApp» inactivo (#35)
+  // Controles inactivos (botón principal sin tanda, «Agregar a WhatsApp» sin stickers de sobra)
   inactivoFondo: '#1B1313',
   inactivoBorde: '#3D2E2E',
   inactivoTexto: '#8E7876',
@@ -54,9 +54,6 @@ export const colores = {
   avanceTexto: '#F4DCD9',
   avancePista: 'rgba(246, 236, 234, 0.12)',
   avanceLuz: '#FFA0AB',
-  // Inactivo del botón principal (sin tanda)
-  principalInactivoFondo: '#3A1B22',
-  principalInactivoTexto: '#C9A3A8',
 } as const;
 
 export const radios = {
@@ -75,6 +72,8 @@ export const tipografias = {
 
 /** Alto mínimo tocable (dp). */
 export const AREA_TOCABLE = 48;
+/** Alto de «Cancelar» y «Borrar» (≥ AREA_TOCABLE). */
+export const ALTO_BOTON_SELECCION = 50;
 
 /** Estilos reutilizables de los controles de pie. */
 export const estilosPie = {
@@ -84,8 +83,6 @@ export const estilosPie = {
     backgroundColor: colores.carmesi,
     borderWidth: 1,
     borderColor: colores.carmesiBorde,
-    shadowColor: colores.carmesi,
-    elevation: 12,
   },
   principalEnCurso: {
     backgroundColor: colores.avanceFondo,

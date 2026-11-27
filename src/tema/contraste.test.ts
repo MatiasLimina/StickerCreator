@@ -8,6 +8,7 @@ describe('contraste (WCAG 2.1)', () => {
   });
 });
 
+// Los controles inactivos están exentos de WCAG 1.4.3, por eso no figuran acá.
 describe('paleta Evernight: los textos cumplen WCAG AA (4,5:1) sobre su fondo', () => {
   const c = colores;
   const pares: [string, string, string][] = [
@@ -19,10 +20,23 @@ describe('paleta Evernight: los textos cumplen WCAG AA (4,5:1) sobre su fondo', 
     ['aviso informativo', c.textoPrincipal, c.avisoInfoFondo],
     ['aviso de error', c.errorTexto, c.errorFondo],
     ['texto de Borrar', c.destructivoTexto, c.destructivoFondo],
-    ['botón principal inactivo', c.principalInactivoTexto, c.principalInactivoFondo],
+    ['ⓘ del aviso informativo', c.avisoInfoAcento, c.avisoInfoFondo],
+    ['⚠ del aviso de error', c.errorAcento, c.errorFondo],
     ['texto del botón en curso', c.avanceTexto, c.avanceFondo],
   ];
   it.each(pares)('%s', (_nombre, texto, fondo) => {
     expect(contraste(texto, fondo)).toBeGreaterThanOrEqual(4.5);
+  });
+});
+
+describe('elementos no textuales cumplen 3:1 (WCAG 1.4.11)', () => {
+  const c = colores;
+  it.each([
+    ['borde coral de Borrar', c.destructivoBorde, c.destructivoFondo],
+    ['borde coral de Borrar sobre el lienzo', c.destructivoBorde, c.lienzo],
+    ['acento del aviso de error sobre el lienzo', c.errorAcento, c.lienzo],
+    ['luz de la barra de avance', c.carmesiVivo, c.avanceFondo],
+  ])('%s', (_n, a, b) => {
+    expect(contraste(a, b)).toBeGreaterThanOrEqual(3);
   });
 });
