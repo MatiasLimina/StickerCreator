@@ -1,14 +1,8 @@
 import { memo } from 'react';
 import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { VistaPaquete } from '../paquetes/biblioteca';
-
-function estado(paquete: VistaPaquete, agregado: boolean): string {
-  // WhatsApp conserva la última versión válida hasta que vuelva a haber 3.
-  if (agregado && !paquete.sePuedeAgregar) return `En WhatsApp sin cambios: faltan ${paquete.faltan} para actualizarlo`;
-  if (agregado) return 'Agregado a WhatsApp';
-  if (paquete.sePuedeAgregar) return 'Listo para agregar a WhatsApp';
-  return `Faltan ${paquete.faltan} para poder agregarlo`;
-}
+import { estadoDePaquete } from '../paquetes/estado';
+import { AREA_TOCABLE, colores, radios } from '../tema/tema';
 
 interface Props {
   paquetes: VistaPaquete[];
@@ -35,22 +29,30 @@ type Acciones = Pick<Props, 'uriDeSticker' | 'onMantener' | 'onTocar'>;
 const Celda = memo(function Celda({
   archivo,
   marcado,
+  animado,
   uriDeSticker,
   onMantener,
   onTocar,
-}: Acciones & { archivo: string; marcado: boolean }) {
+}: Acciones & { archivo: string; marcado: boolean; animado: boolean }) {
   return (
-    <Pressable
-      onLongPress={() => onMantener(archivo)}
-      onPress={() => onTocar(archivo)}
-      style={[styles.celda, marcado && styles.celdaMarcada]}
-      accessibilityLabel="Sticker"
-      accessibilityState={{ selected: marcado }}
-      accessibilityHint="Mantené apretado para seleccionarlo"
-    >
-      <Image source={{ uri: uriDeSticker(archivo) }} style={[styles.sticker, marcado && styles.stickerMarcado]} />
-      {marcado && <Text style={styles.tilde}>✓</Text>}
-    </Pressable>
+    <View style={styles.hueco}>
+      <Pressable
+        onLongPress={() => onMantener(archivo)}
+        onPress={() => onTocar(archivo)}
+        style={[styles.celda, marcado && styles.celdaMarcada]}
+        accessibilityLabel={animado ? 'Sticker animado' : 'Sticker'}
+        accessibilityState={{ selected: marcado }}
+        accessibilityHint="Mantené apretado para seleccionarlo"
+      >
+        <Image source={{ uri: uriDeSticker(archivo) }} style={[styles.sticker, marcado && styles.stickerMarcado]} />
+        {animado && (
+          <View style={styles.etiqueta}>
+            <Text style={styles.textoEtiqueta}>Animado</Text>
+          </View>
+        )}
+        {marcado && <Text style={styles.tilde}>✓</Text>}
+      </Pressable>
+    </View>
   );
 });
 
@@ -62,39 +64,55 @@ export function PantallaPaquetes({ paquetes, agregados, uriDeSticker, onAgregar,
       contentContainerStyle={styles.lista}
       renderItem={({ item }) => {
         const agregado = agregados[item.id] ?? false;
+        const estado = estadoDePaquete(item, agregado);
         return (
           <View style={styles.paquete}>
             <View style={styles.encabezado}>
-              <Text style={styles.nombre}>{item.nombre}</Text>
-              <Text style={styles.contador}>
-                {item.cantidad}/{item.capacidad}
-              </Text>
-            </View>
-            <Text style={[styles.estado, agregado && styles.estadoAgregado]}>{estado(item, agregado)}</Text>
-            {item.stickers.length > 0 && (
-              <View style={styles.grilla}>
-                {item.stickers.map((archivo) => (
-                  <Celda
-                    key={archivo}
-                    archivo={archivo}
-                    marcado={seleccionados.has(archivo)}
-                    uriDeSticker={uriDeSticker}
-                    onMantener={onMantener}
-                    onTocar={onTocar}
-                  />
-                ))}
+              <View style={styles.filaNombre}>
+                <Text style={styles.nombre} numberOfLines={1}>
+                  {item.nombre}
+                </Text>
+                <View style={styles.pastilla}>
+                  <Text style={styles.contador}>
+                    {item.cantidad}/{item.capacidad}
+                  </Text>
+                </View>
               </View>
-            )}
-            {/* Ya agregado, los stickers nuevos llegan solos: no hace falta el botón. */}
-            {!agregado && (
-              <Pressable
-                style={[styles.boton, !item.sePuedeAgregar && styles.botonInactivo]}
-                disabled={!item.sePuedeAgregar}
-                onPress={() => onAgregar(item)}
-              >
-                <Text style={styles.textoBoton}>Agregar a WhatsApp</Text>
-              </Pressable>
-            )}
+              <View style={styles.filaEstado}>
+                {estado.tono === 'en-whatsapp' && <View style={styles.puntito} />}
+                <Text style={[styles.estado, estado.tono === 'listo' && styles.estadoListo]}>{estado.texto}</Text>
+              </View>
+            </View>
+            <View style={styles.cuerpo}>
+              {item.stickers.length > 0 && (
+                <View style={styles.grilla}>
+                  {item.stickers.map((archivo) => (
+                    <Celda
+                      key={archivo}
+                      archivo={archivo}
+                      marcado={seleccionados.has(archivo)}
+                      animado={item.tipo === 'animado'}
+                      uriDeSticker={uriDeSticker}
+                      onMantener={onMantener}
+                      onTocar={onTocar}
+                    />
+                  ))}
+                </View>
+              )}
+              {/* Ya agregado, los stickers nuevos llegan solos: no hace falta el botón. */}
+              {!agregado && (
+                <Pressable
+                  style={[styles.boton, !item.sePuedeAgregar && styles.botonInactivo]}
+                  disabled={!item.sePuedeAgregar}
+                  onPress={() => onAgregar(item)}
+                  accessibilityRole="button"
+                >
+                  <Text style={[styles.textoBoton, !item.sePuedeAgregar && styles.textoBotonInactivo]}>
+                    Agregar a WhatsApp
+                  </Text>
+                </Pressable>
+              )}
+            </View>
           </View>
         );
       }}
@@ -103,32 +121,89 @@ export function PantallaPaquetes({ paquetes, agregados, uriDeSticker, onAgregar,
 }
 
 const styles = StyleSheet.create({
-  lista: { padding: 16, gap: 12 },
-  paquete: { padding: 16, borderRadius: 12, backgroundColor: '#F2F4F7' },
-  encabezado: { flexDirection: 'row', justifyContent: 'space-between' },
-  nombre: { fontSize: 18, fontWeight: '600' },
-  contador: { fontSize: 16, color: '#475467' },
-  estado: { marginTop: 4, color: '#475467' },
-  estadoAgregado: { color: '#067647', fontWeight: '600' },
-  grilla: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
-  celda: { borderRadius: 8, borderWidth: 2, borderColor: 'transparent' },
-  celdaMarcada: { borderColor: '#1570EF', backgroundColor: '#D1E0FF' },
-  sticker: { width: 72, height: 72 },
+  lista: { padding: 16, gap: 14 },
+  paquete: {
+    borderRadius: radios.tarjeta,
+    backgroundColor: colores.tarjeta,
+    borderWidth: 1,
+    borderColor: colores.borde,
+    overflow: 'hidden',
+  },
+  encabezado: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 4,
+    backgroundColor: colores.cabecera,
+    borderBottomWidth: 1,
+    borderBottomColor: colores.borde,
+  },
+  filaNombre: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  nombre: { flexShrink: 1, fontSize: 18, fontWeight: '600', color: colores.textoPrincipal },
+  pastilla: {
+    minHeight: 28,
+    paddingHorizontal: 12,
+    justifyContent: 'center',
+    borderRadius: radios.capsula,
+    backgroundColor: colores.control,
+    borderWidth: 1,
+    borderColor: colores.borde,
+  },
+  contador: { fontSize: 14, fontWeight: '600', color: colores.textoSecundario, fontVariant: ['tabular-nums'] },
+  filaEstado: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  puntito: { width: 8, height: 8, borderRadius: 4, backgroundColor: colores.verdeEstado },
+  estado: { fontSize: 14, color: colores.textoAtenuado },
+  estadoListo: { color: colores.textoSecundario },
+  cuerpo: { padding: 12, gap: 12 },
+  grilla: { flexDirection: 'row', flexWrap: 'wrap' },
+  // Cuatro columnas: cada hueco ocupa un cuarto y la baldosa respeta una separación pareja.
+  hueco: { width: '25%', padding: 4 },
+  celda: {
+    aspectRatio: 1,
+    minHeight: AREA_TOCABLE,
+    borderRadius: radios.baldosa,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    backgroundColor: colores.baldosa,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  celdaMarcada: { borderColor: colores.carmesiVivo, backgroundColor: colores.baldosaMarcada },
+  sticker: { width: '84%', height: '84%' },
   stickerMarcado: { opacity: 0.6 },
+  etiqueta: {
+    position: 'absolute',
+    bottom: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: radios.capsula,
+    backgroundColor: colores.cabecera,
+  },
+  textoEtiqueta: { fontSize: 10, fontWeight: '600', color: colores.textoPrincipal },
   tilde: {
     position: 'absolute',
-    top: 2,
-    right: 2,
+    top: -6,
+    right: -6,
     width: 22,
     height: 22,
     borderRadius: 11,
     overflow: 'hidden',
-    backgroundColor: '#1570EF',
-    color: '#fff',
+    backgroundColor: colores.carmesi,
+    color: colores.carmesiTexto,
     textAlign: 'center',
+    lineHeight: 22,
     fontWeight: '700',
   },
-  boton: { marginTop: 12, padding: 12, borderRadius: 10, backgroundColor: '#25D366', alignItems: 'center' },
-  botonInactivo: { opacity: 0.4 },
-  textoBoton: { color: '#fff', fontSize: 15, fontWeight: '600' },
+  boton: {
+    minHeight: AREA_TOCABLE,
+    paddingHorizontal: 16,
+    borderRadius: radios.boton,
+    backgroundColor: colores.control,
+    borderWidth: 1,
+    borderColor: colores.bordeControl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  botonInactivo: { backgroundColor: colores.inactivoFondo, borderColor: colores.inactivoBorde },
+  textoBoton: { color: colores.textoPrincipal, fontSize: 15, fontWeight: '600' },
+  textoBotonInactivo: { color: colores.inactivoTexto },
 });
