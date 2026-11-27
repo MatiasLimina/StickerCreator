@@ -28,6 +28,7 @@ describe('biblioteca de paquetes', () => {
         sePuedeAgregar: false,
         icono: null,
         version: 0,
+        pendienteEnWhatsApp: false,
       },
       {
         id: 'animado-1',
@@ -41,6 +42,7 @@ describe('biblioteca de paquetes', () => {
         sePuedeAgregar: false,
         icono: null,
         version: 0,
+        pendienteEnWhatsApp: false,
       },
     ]);
   });
@@ -334,5 +336,97 @@ describe('borrar stickers', () => {
       await biblioteca.agregarSticker({ tipo: 'estatico', archivo: 'd.webp' });
       expect(descartados).toEqual(['a.webp']);
     });
+  });
+});
+
+// WhatsApp no relee solo un paquete que ya tiene (ADR 0002): la biblioteca
+// recuerda qué versión publicada confirmó, para saber si quedó algo sin pasar.
+describe('cambios sin pasar a WhatsApp', () => {
+  async function publicadoCon3(almacen = crearAlmacenEnMemoria()) {
+    const biblioteca = await abrirBiblioteca(almacen);
+    let paquete = await biblioteca.agregarSticker({ tipo: 'estatico', archivo: 'a.webp' });
+    for (const archivo of ['b.webp', 'c.webp']) paquete = await biblioteca.agregarSticker({ tipo: 'estatico', archivo });
+    return { biblioteca, paquete, almacen };
+  }
+  const estatico = (biblioteca: Awaited<ReturnType<typeof abrirBiblioteca>>) =>
+    biblioteca.paquetes().find((p) => p.id === 'estatico-1')!;
+
+  it('un paquete sin publicar no tiene nada pendiente', async () => {
+    const biblioteca = await abrirBiblioteca(crearAlmacenEnMemoria());
+    await biblioteca.agregarSticker({ tipo: 'estatico', archivo: 'a.webp' });
+
+    expect(estatico(biblioteca).pendienteEnWhatsApp).toBe(false);
+  });
+
+  it('lo publicado que WhatsApp nunca confirmó queda pendiente', async () => {
+    const { biblioteca } = await publicadoCon3();
+
+    expect(estatico(biblioteca).pendienteEnWhatsApp).toBe(true);
+  });
+
+  it('al confirmar la versión publicada deja de estar pendiente, también al reabrir', async () => {
+    const { biblioteca, paquete, almacen } = await publicadoCon3();
+
+    await biblioteca.confirmarEnWhatsApp(paquete.id, paquete.version);
+
+    expect(estatico(biblioteca).pendienteEnWhatsApp).toBe(false);
+    expect(estatico(await abrirBiblioteca(almacen)).pendienteEnWhatsApp).toBe(false);
+  });
+
+  it('un sticker nuevo después de confirmar vuelve a quedar pendiente', async () => {
+    const { biblioteca, paquete } = await publicadoCon3();
+    await biblioteca.confirmarEnWhatsApp(paquete.id, paquete.version);
+
+    await biblioteca.agregarSticker({ tipo: 'estatico', archivo: 'd.webp' });
+
+    expect(estatico(biblioteca).pendienteEnWhatsApp).toBe(true);
+  });
+
+  it('borrar un sticker después de confirmar también queda pendiente', async () => {
+    const { biblioteca } = await publicadoCon3();
+    await biblioteca.agregarSticker({ tipo: 'estatico', archivo: 'd.webp' });
+    const conCuatro = estatico(biblioteca);
+    await biblioteca.confirmarEnWhatsApp(conCuatro.id, conCuatro.version);
+
+    await biblioteca.borrarStickers(['d.webp']);
+
+    expect(estatico(biblioteca).pendienteEnWhatsApp).toBe(true);
+  });
+
+  it('si llegó un sticker mientras WhatsApp confirmaba, la versión vieja no lo da por pasado', async () => {
+    const { biblioteca, paquete } = await publicadoCon3();
+    await biblioteca.agregarSticker({ tipo: 'estatico', archivo: 'd.webp' });
+
+    await biblioteca.confirmarEnWhatsApp(paquete.id, paquete.version);
+
+    expect(estatico(biblioteca).pendienteEnWhatsApp).toBe(true);
+  });
+
+  it('bajar de 3 después de confirmar no deja nada pendiente: WhatsApp conserva lo que tenía', async () => {
+    const { biblioteca, paquete } = await publicadoCon3();
+    await biblioteca.confirmarEnWhatsApp(paquete.id, paquete.version);
+
+    await biblioteca.borrarStickers(['c.webp']);
+
+    expect(estatico(biblioteca).pendienteEnWhatsApp).toBe(false);
+  });
+
+  it('un índice de antes de este dato muestra pendiente lo publicado hasta la primera confirmación', async () => {
+    const almacen = crearAlmacenEnMemoria();
+    const publicado = { version: 3, nombre: 'Mis stickers', autor: 'StickerCreator', stickers: ['a.webp', 'b.webp', 'c.webp'] };
+    await almacen.escribir(
+      JSON.stringify({
+        paquetes: [
+          { tipo: 'estatico', numero: 1, stickers: ['a.webp', 'b.webp', 'c.webp'], version: 3, publicado },
+          { tipo: 'animado', numero: 1, stickers: [], version: 0, publicado: null },
+        ],
+      }),
+    );
+    const biblioteca = await abrirBiblioteca(almacen);
+    expect(estatico(biblioteca).pendienteEnWhatsApp).toBe(true);
+
+    await biblioteca.confirmarEnWhatsApp('estatico-1', 3);
+
+    expect(estatico(biblioteca).pendienteEnWhatsApp).toBe(false);
   });
 });

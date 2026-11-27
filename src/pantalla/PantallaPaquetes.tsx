@@ -72,6 +72,9 @@ export function PantallaPaquetes({ paquetes, agregados, uriDeSticker, onAgregar,
       renderItem={({ item }) => {
         const agregado = agregados[item.id] ?? false;
         const estado = estadoDePaquete(item, agregado);
+        // WhatsApp no relee solo un paquete que ya tiene (ADR 0002): si quedaron
+        // cambios sin pasar, el mismo botón le pide que lo actualice.
+        const conBoton = !agregado || estado.tono === 'pendiente';
         return (
           <View style={styles.paquete}>
             <View style={styles.encabezado}>
@@ -106,8 +109,7 @@ export function PantallaPaquetes({ paquetes, agregados, uriDeSticker, onAgregar,
                   ))}
                 </View>
               )}
-              {/* Ya agregado, los stickers nuevos llegan solos: no hace falta el botón. */}
-              {!agregado && (
+              {conBoton && (
                 <Pressable
                   style={[styles.boton, !item.sePuedeAgregar && styles.botonInactivo]}
                   disabled={!item.sePuedeAgregar}
@@ -115,7 +117,7 @@ export function PantallaPaquetes({ paquetes, agregados, uriDeSticker, onAgregar,
                   accessibilityRole="button"
                 >
                   <Text style={[styles.textoBoton, !item.sePuedeAgregar && styles.textoBotonInactivo]}>
-                    Agregar a WhatsApp
+                    {agregado ? 'Actualizar en WhatsApp' : 'Agregar a WhatsApp'}
                   </Text>
                 </Pressable>
               )}
